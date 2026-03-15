@@ -1,0 +1,30 @@
+{
+  "name": "smart-studio-user-system",
+  "version": "1.0.0",
+  "description": "智能工作室用户管理系统 - 导演身份和智能体团队管理",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "migrate": "node src/config/migrate.js",
+    "test": "jest"
+  },
+  "keywords": ["smart-studio", "user-management", "ai-agents", "director-system"],
+  "author": "Nmyh NIUMA & AI导演",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.6",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "helmet": "^7.0.0",
+    "morgan": "^1.10.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3"
+  }
+}
