@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能工作室DeepSeek集成版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --secondary: #8b5cf6;
+            --accent: #10b981;
+            --dark: #1f2937;
+            --light: #f9fafb;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .deepseek-badge {
+            background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .connection-status {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            margin: 10px 0;
+        }
+        
+        .connected {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+        
+        .disconnected {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+        
+        .connecting {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .api-info {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+        
+        .agent-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 12px 0;
+            transition: all 0.3s ease;
+        }
+        
+        .agent-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .chat-bubble {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            margin: 8px 0;
+            position: relative;
+        }
+        
+        .chat-bubble.ai {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .chat-bubble.user {
+            background: rgba(139, 92, 246, 0.2);
+            border: 1px solid rgba(139, 92, 246, 0.4);
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .token-usage {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 8px;
+            margin: 4px 0;
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+    <div class="min-h-screen p-4 md:p-6">
+        <!-- 顶部导航 -->
+        <nav class="glass-card rounded-2xl p-4 mb-6 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-r from-green-500 to-teal-500 flex items-center justify-center">
+                    <i class="fas fa-brain text-white text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-white">智能工作室DeepSeek集成版</h1>
+                    <p class="text-sm text-gray-200">本地运行 · DeepSeek AI驱动 · 专业智能体</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="deepseek-badge">
+                    <i class="fas fa-robot"></i>
+                    <span>DeepSeek AI驱动</span>
+                </span>
+                <button id="test-api" class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition flex items-center space-x-2">
+                    <i class="fas fa-vial"></i>
+                    <span>测试API连接</span>
+                </button>
+            </div>
+        </nav>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- 左侧：API状态和配置 -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- API状态卡片 -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                        <i class="fas fa-plug mr-2"></i> DeepSeek API状态
+                    </h3>
+                    
+                    <div id="api-status" class="connection-status connecting">
+                        <i class="fas fa-circle-notch fa-spin mr-2"></i>
+                        正在连接DeepSeek API...
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h4 class="text-sm font-medium text-gray-300 mb-2">API配置</h4>
+                        <div class="api-info">
+                            <div class="text-gray-300">
+                                <div class="flex justify-between">
+                                    <span>API服务器:</span>
+                                    <span class="text-white font-mono" id="api-server">localhost:3002</span>
+                                </div>
+                                <div class="flex justify-between mt-1">
+                                    <span>AI模型:</span>
+                                    <span class="text-white font-mono">deepseek-chat</span>
+                                </div>
+                                <div class="flex justify-between mt-1">
+                                    <span>连接状态:</span>
+                                    <span id="api-connection" class="text-yellow-400">检测中</span>
+                                </div>
+                                <div class="flex justify-between mt-1">
+                                    <span>响应时间:</span>
+                                    <span id="api-response-time" class="text-white">- ms</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h4 class="text-sm font-medium text-gray-300 mb-2">API使用统计</h4>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="text-center p-3 bg-white/10 rounded-xl">
+                                <div class="text-2xl font-bold text-white" id="api-calls">0</div>
+                                <div class="text-xs text-gray-300">API调用次数</div>
+                            </div>
+                            <div class="text-center p-3 bg-white/10 rounded-xl">
+                                <div class="text-2xl font-bold text-white" id="total-tokens">0</div>
+                                <div class="text-xs text-gray-300">总Token数</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 智能体选择 -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                        <i class="fas fa-robot mr-2"></i> 选择智能体
+                    </h3>
+                    
+                    <div class="space-y-3" id="agents-selection">
+                        <!-- 智能体会动态生成 -->
+                    </div>
+                    
+                    <div class="mt-4 text-sm text-gray-400">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        选择智能体进行对话，每个智能体有专业角色设定
+                    </div>
+                </div>
+
+                <!-- 快速操作 -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                        <i class="fas fa-bolt mr-2"></i> 快速操作
+                    </h3>
+                    
+                    <div class="space-y-3">
+                        <button id="start-project" class="w-full py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl font-medium transition flex items-center justify-center space-x-2">
+                            <i class="fas fa-plus-circle"></i>
+                            <span>开始AI创作项目</span>
+                        </button>
+                        
+                        <button id="test-all-agents" class="w-full py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-xl font-medium transition flex items-center justify-center space-x-2">
+                            <i class="fas fa-users"></i>
+                            <span>测试所有智能体</span>
+                        </button>
+                        
+                        <button id="configure-api" class="w-full py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl font-medium transition flex items-center justify-center space-x-2">
+                            <i class="fas fa-cog"></i>
+                            <span>配置API设置</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 中间和右侧：主界面 -->
+            <div class="lg:col-span-2">
+                <!-- AI对话面板 -->
+                <div class="glass-card rounded-2xl p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-white flex items-center">
+                            <i class="fas fa-comments mr-3"></i> AI智能体对话
+                            <span class="ml-2 text-sm bg-white/20 text-white px-2 py-1 rounded-full" id="selected-agent">未选择</span>
+                        </h2>
+                        <div class="flex space-x-2">
+                            <button id="clear-chat" class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition">
+                                清空对话
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="chat-panel" class="space-y-4">
+                        <!-- 对话区域 -->
+                        <div class="bg-white/5 rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <h4 class="font-semibold text-white">与智能体对话</h4>
+                                <span class="text-xs text-gray-400">DeepSeek AI驱动</span>
+                            </div>
+                            
+                            <div id="chat-messages" class="space-y-3 max-h-80 overflow-y-auto p-2">
+                                <div class="chat-bubble ai">
+                                    <div class="flex items-center mb-1">
+                                        <i class="fas fa-robot mr-2 text-green-400"></i>
+                                        <span class="font-medium text-white">AI助手</span>
+                                    </div>
+                                    <p class="text-sm text-white">🎬 你好！我是DeepSeek驱动的AI助手。请选择左侧的智能体开始专业对话，或直接输入你的问题。</p>
+                                    <span class="text-xs text-gray-400 mt-1 block">AI助手 · 刚刚</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3 flex space-x-2">
+                                <input type="text" id="chat-input" placeholder="输入消息..." class="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-green-500">
+                                <button id="send-message" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition">
+                                    发送
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Token使用统计 -->
+                        <div class="bg-white/5 rounded-xl p-4">
+                            <h4 class="font-semibold text-white mb-3">API使用统计</h4>
+                            <div id="token-usage" class="space-y-2">
+                                <div class="token-usage">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">本次对话:</span>
+                                        <span class="text-white">0 tokens</span>
+                                    </div>
+                                </div>
+                                <div class="token-usage">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">总使用量:</span>
+                                        <span class="text-white">0 tokens</span>
+                                    </div>
+                                </div>
+                                <div class="text-xs text-gray-400 mt-2">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    基于DeepSeek API的实时Token统计
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 项目创作面板 -->
+                <div class="glass-card rounded-2xl p-6 mt-6">
+                    <h2 class="text-2xl font-bold text-white flex items-center mb-6">
+                        <i class="fas fa-project-diagram mr-3"></i> AI创作项目
+                    </h2>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-white/5 rounded-xl p-4">
+                            <h4 class="font-semibold text-white mb-3">快速创作模板</h4>
+                            <div class="space-y-3">
+                                <button class="w-full py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg transition text-sm" onclick="startAICreation('video_creation')">
+                                    <i class="fas fa-video mr-2"></i>AI短视频创作
+                                </button>
+                                <button class="w-full py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-lg transition text-sm" onclick="startAICreation('story_creation')">
+                                    <i class="fas fa-book mr-2"></i>AI故事创作
+                                </button>
+                                <button class="w-full py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-lg transition text-sm" onclick="startAICreation('brand_content')">
+                                    <i class="fas fa-bullhorn mr-2"></i>AI品牌内容
+                                </button>
+                                <button class="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-lg transition text-sm" onclick="startAICreation('educational')">
+                                    <i class="fas fa-graduation-cap mr-2"></i>AI教育内容
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white/5 rounded-xl p-4">
+                            <h4 class="font-semibold text-white mb-3">创作设置</h4>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-sm text-gray-300 mb-1">创作类型</label>
+                                    <select id="creation-type" class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm">
+                                        <option value="video_creation">视频创作</option>
+                                        <option value="story_creation">故事创作</option>
+                                        <option value="animation">动画制作</option>
+                                        <option value="brand_content">品牌内容</option>
+                                        <option value="educational">教育内容</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm text-gray-300 mb-1">AI创造力</label>
+                                    <select id="ai-creativity" class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm">
+                                        <option value="0.3">保守 (适合事实性内容)</option>
+                                        <option value="0.7" selected>平衡 (适合大多数创作)</option>
+                                        <option value="1.0">创意 (适合艺术创作)</option>
+                                    </select>
+                                </div>
+                                <button id="start-custom-creation" class="w-full py-2 bg-gradient-to-r from-purple-500 topink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg transition text-sm">
+                                    开始自定义创作
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-4 bg-green-500/10 rounded-xl">
+                        <h4 class="font-semibold text-white mb-2">💡 DeepSeek AI优势</h4>
+                        <p class="text-sm text-gray-300">
+                            这个版本使用DeepSeek API提供真正的AI能力：
+                            1. <strong>强大的AI模型</strong>：基于DeepSeek最新模型
+                            2. <strong>专业智能体</strong>：5个专业角色的AI助手
+                            3. <strong>实时响应</strong>：低延迟的AI对话
+                            4. <strong>成本可控</strong>：按使用量计费，灵活控制
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部状态栏 -->
+        <div class="mt-6 text-center text-gray-400 text-sm">
+            <p>智能工作室DeepSeek集成版 v1.0.0 | API状态: <span id="bottom-api-status" class="text-yellow-400">连接中</span> | 驱动模型: <span class="text-green-400">DeepSeek Chat</span></p>
+            <p class="mt-1">最后调用: <span id="last-call">从未</span> | 总Token: <span class="text-white">0</span></p>
+        </div>
+    </div>
+
+    <!-- JavaScript - DeepSeek集成 -->
+    <script>
+        // ==================== 配置 ====================
+        const CONFIG = {
+            apiBase: 'http://localhost:3002/api/deepseek',
+            agents: [
+                { id: 'director', name: 'AI导演', icon: 'fa-crown', color: 'from-orange-500 to-yellow-500' },
+                { id: 'narrative', name: '故事创作', icon: 'fa-pen-nib', color: 'from-blue-500 to-blue-600' },
+                { id: 'storyboard', name: '分镜设计', icon: 'fa-film', color: 'from-purple-500 to-purple-600' },
+                { id: 'visual_style', name: '视觉风格', icon: 'fa-palette', color: 'from-green-500 to-green-600' },
+                { id: 'dreamai', name: 'AI生成专家', icon: 'fa-magic', color: 'from-pink-500 to-rose-500' }
+            ]
+        };
+        
+        // ==================== 状态管理 ====================
+        let state = {
+            apiConnected: false,
+            selectedAgent: null,
+            chatHistory: [],
+            apiCalls: 0,
+            totalTokens: 0,
+            currentTokens: 0,
+            lastCallTime: null
+        };
+        
+        // ==================== API客户端 ====================
+        class DeepSeekAPIClient {
+            constructor(baseUrl) {
+                this.baseUrl = baseUrl;
+            }
+            
+            async testConnection() {
+                try {
+                    const startTime = Date.now();
+                    const response = await fetch(`${this.baseUrl}/test`);
+                    const endTime = Date.now();
+                    
+                    const data = await response.json();
+                    
+                    return {
+                        success: data.success,
+                        responseTime: endTime - startTime,
+                        data: data,
+                        message: data.message
+                    };
+                } catch (error) {
+                    return {
+                        success: false,
+                        error: error.message,
+                        message: 'API连接失败'
+                    };
+                }
+            }
+            
+            async chatWithAgent(agentType, message, context = {}) {
+                try {
+                    const startTime = Date.now();
+                    const response = await fetch(`${this.baseUrl}/agent/${agentType}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            message: message,
+                            context: context
+                        })
+                    });
+                    const endTime = Date.now();
+                    
+                    const data = await response.json();
+                    
+                    // 更新统计
+                    if (data.success && data.usage) {
+                        state.totalTokens += data.usage.total_tokens || 0;
+                        state.currentTokens += data.usage.total_tokens || 0;
+                    }
+                    
+                    state.apiCalls++;
+                    state.lastCallTime = new Date();
+                    
+                    return {
+                        success: data.success,
+                        responseTime: endTime - startTime,
+                        data: data,
+                        message: data.message
+                    };
+                } catch (error) {
+                    return {
+                        success: false,
+                        error: error.message,
+                        message: 'API请求失败'
+                    };
+                }
+            }
+            
+            async getAgents() {
+                try {
+                    const response = await fetch(`${this.baseUrl}/agents`);
+                    const data = await response.json();
+                    
+                    return {
+                        success: data.success,
+                        data: data.data,
+                        message: data.message
+                    };
+                } catch (error) {
+                    return {
+                        success: false,
+                        error: error.message,
+                        message: '获取智能体列表失败'
+                    };
+                }
+            }
+            
+            async collaborativeChat(message, context = {}) {
+                try {
+                    const response = await fetch(`${this.baseUrl}/collaborative`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            message: message,
+                            context: context
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    return {
+                        success: data.success,
+                        data: data.data,
+                        message: data.message
+                    };
+                } catch (error) {
+                    return {
+                        success: false,
+                        error: error.message,
+                        message: '协作对话失败'
+                    };
+                }
+            }
+        }
+        
+        // ==================== 界面管理 ====================
+        class DeepSeekUI {
+            constructor(client) {
+                this.client = client;
+            }
+            
+            // 初始化界面
+            init() {
+                this.renderAgents();
+                this.setupEventListeners();
+                this.testAPIConnection();
+                this.updateStats();
+            }
+            
+            // 渲染智能体选择
+            renderAgents() {
+                const container = document.getElementById('agents-selection');
+                container.innerHTML = '';
+                
+                CONFIG.agents.forEach(agent => {
+                    const agentElement = document.createElement('div');
+                    agentElement.className = 'agent-card cursor-pointer';
+                    agentElement.dataset.agent = agent.id;
+                    
+                    agentElement.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-r ${agent.color} flex items-center justify-center">
+                                    <i class="fas ${agent.icon} text-white"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-white">${agent.name}</div>
+                                    <div class="text-xs text-gray-400">DeepSeek AI驱动</div>
+                                </div>
+                            </div>
+                            <div class="w-3 h-3 rounded-full bg-gray-500 agent-status" id="status-${agent.id}"></div>
+                        </div>
+                    `;
+                    
+                    agentElement.addEventListener('click', () => this.selectAgent(agent.id));
+                    container.appendChild(agentElement);
+                });
+            }
+            
+            // 选择智能体
+            selectAgent(agentId) {
+                // 更新选中状态
+                document.querySelectorAll('.agent-card').forEach(card => {
+                    card.classList.remove('bg-white/10');
+                });
+                document.querySelector(`[data-agent="${agentId}"]`).classList.add('bg-white/10');
+                
+                // 更新状态
+                state.selectedAgent = agentId;
+                const agent = CONFIG.agents.find(a => a.id === agentId);
+                
+                // 更新界面
+                document.getElementById('selected-agent').textContent = agent.name;
+                document.getElementById('selected-agent').className = 'ml-2 text-sm bg-green-500/20 text-green-300 px-2 py-1 rounded-full';
+                
+                // 添加系统消息
+                this.addChatMessage('system', `已选择 ${agent.name}，现在可以开始专业对话。`, 'ai');
+                
+                this.showNotification(`✅ 已选择 ${agent.name}`);
+            }
+            
+            // 测试API连接
+            async testAPIConnection() {
+                this.updateStatus('connecting', '正在连接DeepSeek API...');
+                
+                const result = await this.client.testConnection();
+                
+                if (result.success) {
+                    state.apiConnected = true;
+                    this.updateStatus('connected', `✅ DeepSeek API连接成功 (${result.responseTime}ms)`);
+                    // 更新API信息
+                    document.getElementById('api-response-time').textContent = `${result.responseTime}ms`;
+                    document.getElementById('api-connection').textContent = '已连接';
+                    document.getElementById('api-connection').className = 'text-green-400';
+                    
+                    this.showNotification(`✅ DeepSeek API连接成功！响应时间: ${result.responseTime}ms`);
+                } else {
+                    state.apiConnected = false;
+                    this.updateStatus('disconnected', `❌ DeepSeek API连接失败: ${result.message}`);
+                    
+                    document.getElementById('api-connection').textContent = '连接失败';
+                    document.getElementById('api-connection').className = 'text-red-400';
+                    
+                    this.showNotification(`❌ API连接失败: ${result.message}`, 'error');
+                }
+                
+                this.updateStats();
+            }
+            
+            // 更新状态显示
+            updateStatus(status, message) {
+                const statusElement = document.getElementById('api-status');
+                const bottomStatus = document.getElementById('bottom-api-status');
+                
+                statusElement.innerHTML = `
+                    <i class="fas ${status === 'connected' ? 'fa-check-circle' : status === 'disconnected' ? 'fa-times-circle' : 'fa-circle-notch fa-spin'} mr-2"></i>
+                    ${message}
+                `;
+                statusElement.className = `connection-status ${status}`;
+                
+                bottomStatus.textContent = status === 'connected' ? '已连接' : status === 'disconnected' ? '连接失败' : '连接中';
+                bottomStatus.className = status === 'connected' ? 'text-green-400' : status === 'disconnected' ? 'text-red-400' : 'text-yellow-400';
+            }
+            
+            // 发送消息
+            async sendMessage() {
+                const input = document.getElementById('chat-input');
+                const message = input.value.trim();
+                
+                if (!message) {
+                    this.showNotification('请输入消息内容', 'error');
+                    return;
+                }
+                
+                if (!state.selectedAgent) {
+                    this.showNotification('请先选择智能体', 'error');
+                    return;
+                }
+                
+                if (!state.apiConnected) {
+                    this.showNotification('API未连接，请先测试连接', 'error');
+                    return;
+                }
+                
+                // 添加用户消息
+                this.addChatMessage('user', message, 'user');
+                
+                // 清空输入
+                input.value = '';
+                
+                // 显示正在思考
+                const thinkingId = this.showThinkingMessage();
+                
+                try {
+                    // 发送到API
+                    const result = await this.client.chatWithAgent(state.selectedAgent, message);
+                    
+                    // 移除思考消息
+                    this.removeThinkingMessage(thinkingId);
+                    
+                    if (result.success) {
+                        // 添加AI响应
+                        const agent = CONFIG.agents.find(a => a.id === state.selectedAgent);
+                        this.addChatMessage(agent.name, result.data.response, 'ai', result.data.usage);
+                        
+                        // 更新统计
+                        this.updateStats();
+                        
+                        this.showNotification(`✅ ${agent.name} 响应成功 (${result.responseTime}ms)`);
+                    } else {
+                        this.addChatMessage('system', `❌ API错误: ${result.message}`, 'ai');
+                        this.showNotification(`❌ API请求失败: ${result.message}`, 'error');
+                    }
+                } catch (error) {
+                    this.removeThinkingMessage(thinkingId);
+                    this.addChatMessage('system', `❌ 网络错误: ${error.message}`, 'ai');
+                    this.showNotification(`❌ 网络错误: ${error.message}`, 'error');
+                }
+            }
+            
+            // 添加聊天消息
+            addChatMessage(sender, message, type = 'ai', usage = null) {
+                const container = document.getElementById('chat-messages');
+                
+                const messageElement = document.createElement('div');
+                messageElement.className = `chat-bubble ${type}`;
+                
+                // 格式化时间
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+                
+                // 获取图标和颜色
+                let icon = 'fa-robot';
+                let color = 'text-green-400';
+                
+                if (type === 'user') {
+                    icon = 'fa-user';
+                    color = 'text-purple-400';
+                } else if (type === 'ai') {
+                    const agent = CONFIG.agents.find(a => a.name === sender || a.id === sender);
+                    if (agent) {
+                        icon = agent.icon;
+                        color = 'text-green-400';
+                    }
+                }
+                
+                messageElement.innerHTML = `
+                    <div class="flex items-center mb-1">
+                        <i class="fas ${icon} mr-2 ${color}"></i>
+                        <span class="font-medium text-white">${sender}</span>
+                    </div>
+                    <p class="text-sm text-white">${message}</p>
+                    <span class="text-xs text-gray-400 mt-1 block">${sender} · ${timeStr}</span>
+                `;
+                
+                // 添加Token使用信息
+                if (usage && type === 'ai') {
+                    const usageElement = document.createElement('div');
+                    usageElement.className = 'token-usage mt-2';
+                    usageElement.innerHTML = `
+                        <div class="flex justify-between text-xs">
+                            <span class="text-gray-400">Token使用:</span>
+                            <span class="text-white">${usage.total_tokens || 0} tokens</span>
+                        </div>
+                    `;
+                    messageElement.appendChild(usageElement);
+                }
+                
+                container.appendChild(messageElement);
+                
+                // 滚动到底部
+                container.scrollTop = container.scrollHeight;
+                
+                // 保存到历史
+                state.chatHistory.push({
+                    sender,
+                    message,
+                    type,
+                    timestamp: now,
+                    usage
+                });
+            }
+            
+            // 显示思考消息
+            showThinkingMessage() {
+                const container = document.getElementById('chat-messages');
+                const thinkingId = 'thinking-' + Date.now();
+                
+                const thinkingElement = document.createElement('div');
+                thinkingElement.id = thinkingId;
+                thinkingElement.className = 'chat-bubble ai';
+                thinkingElement.innerHTML = `
+                    <div class="flex items-center mb-1">
+                        <i class="fas fa-spinner fa-spin mr-2 text-yellow-400"></i>
+                        <span class="font-medium text-white">AI思考中...</span>
+                    </div>
+                    <p class="text-sm text-white">正在处理你的请求，请稍候...</p>
+                `;
+                
+                container.appendChild(thinkingElement);
+                container.scrollTop = container.scrollHeight;
+                
+                return thinkingId;
+            }
+            
+            // 移除思考消息
+            removeThinkingMessage(id) {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.remove();
+                }
+            }
+            
+            // 清空对话
+            clearChat() {
+                const container = document.getElementById('chat-messages');
+                container.innerHTML = '';
+                
+                // 添加初始消息
+                this.addChatMessage('system', '🎬 对话已清空。请选择智能体开始新的对话。', 'ai');
+                
+                // 重置当前Token计数
+                state.currentTokens = 0;
+                this.updateStats();
+                
+                this.showNotification('🗑️ 对话已清空');
+            }
+            
+            // 测试所有智能体
+            async testAllAgents() {
+                if (!state.apiConnected) {
+                    this.showNotification('请先连接API', 'error');
+                    return;
+                }
+                
+                this.addChatMessage('system', '🔧 开始测试所有智能体...', 'ai');
+                
+                for (const agent of CONFIG.agents) {
+                    this.addChatMessage('system', `测试 ${agent.name}...`, 'ai');
+                    
+                    const result = await this.client.chatWithAgent(agent.id, '你好，请简单介绍一下你的专业领域。');
+                    
+                    if (result.success) {
+                        this.addChatMessage(agent.name, result.data.response, 'ai', result.data.usage);
+                    } else {
+                        this.addChatMessage('system', `❌ ${agent.name} 测试失败: ${result.message}`, 'ai');
+                    }
+                    
+                    // 延迟避免API限制
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                
+                this.addChatMessage('system', '✅ 所有智能体测试完成！', 'ai');
+                this.showNotification('✅ 所有智能体测试完成');
+            }
+            
+            // 开始AI创作项目
+            async startAICreation(type) {
+                if (!state.apiConnected) {
+                    this.showNotification('请先连接API', 'error');
+                    return;
+                }
+                
+                const projectTypes = {
+                    video_creation: '短视频创作',
+                    story_creation: '故事创作',
+                    brand_content: '品牌内容',
+                    educational: '教育内容'
+                };
+                
+                const projectName = projectTypes[type] || 'AI创作项目';
+                
+                this.addChatMessage('system', `🚀 开始${projectName}项目...`, 'ai');
+                
+                // 使用导演智能体开始项目
+                const result = await this.client.chatWithAgent('director', 
+                    `请帮我开始一个${projectName}项目，提供初步的创意方向和建议。`);
+                
+                if (result.success) {
+                    this.addChatMessage('AI导演', result.data.response, 'ai', result.data.usage);
+                    
+                    // 自动选择导演智能体
+                    this.selectAgent('director');
+                    
+                    this.showNotification(`🚀 ${projectName}项目已启动`);
+                } else {
+                    this.addChatMessage('system', `❌ 项目启动失败: ${result.message}`, 'ai');
+                    this.showNotification(`❌ 项目启动失败`, 'error');
+                }
+            }
+            
+            // 更新统计信息
+            updateStats() {
+                document.getElementById('api-calls').textContent = state.apiCalls;
+                document.getElementById('total-tokens').textContent = state.totalTokens.toLocaleString();
+                document.getElementById('last-call').textContent = state.lastCallTime ? 
+                    state.lastCallTime.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '从未';
+                
+                // 更新Token使用显示
+                const tokenUsage = document.getElementById('token-usage');
+                tokenUsage.innerHTML = `
+                    <div class="token-usage">
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">本次对话:</span>
+                            <span class="text-white">${state.currentTokens.toLocaleString()} tokens</span>
+                        </div>
+                    </div>
+                    <div class="token-usage">
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">总使用量:</span>
+                            <span class="text-white">${state.totalTokens.toLocaleString()} tokens</span>
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-400 mt-2">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        基于DeepSeek API的实时Token统计
+                    </div>
+                `;
+            }
+            
+            // 显示通知
+            showNotification(message, type = 'success') {
+                const notification = document.createElement('div');
+                notification.className = `fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300 transform translate-x-full ${
+                    type === 'success' ? 'bg-green-500' : 'bg-red-500'
+                } text-white`;
+                notification.textContent = message;
+                
+                document.body.appendChild(notification);
+                
+                // 显示动画
+                setTimeout(() => {
+                    notification.classList.remove('translate-x-full');
+                    notification.classList.add('translate-x-0');
+                }, 10);
+                
+                // 隐藏动画
+                setTimeout(() => {
+                    notification.classList.remove('translate-x-0');
+                    notification.classList.add('translate-x-full');
+                    
+                    // 移除元素
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 300);
+                }, 3000);
+            }
+            
+            // 设置事件监听器
+            setupEventListeners() {
+                // 测试API连接
+                document.getElementById('test-api').addEventListener('click', () => {
+                    this.testAPIConnection();
+                });
+                
+                // 发送消息
+                document.getElementById('send-message').addEventListener('click', () => {
+                    this.sendMessage();
+                });
+                
+                document.getElementById('chat-input').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.sendMessage();
+                    }
+                });
+                
+                // 清空对话
+                document.getElementById('clear-chat').addEventListener('click', () => {
+                    this.clearChat();
+                });
+                
+                // 开始项目
+                document.getElementById('start-project').addEventListener('click', () => {
+                    this.startAICreation('video_creation');
+                });
+                
+                // 测试所有智能体
+                document.getElementById('test-all-agents').addEventListener('click', () => {
+                    this.testAllAgents();
+                });
+                
+                // 配置API
+                document.getElementById('configure-api').addEventListener('click', () => {
+                    this.showNotification('配置功能开发中...');
+                });
+                
+                // 开始自定义创作
+                document.getElementById('start-custom-creation').addEventListener('click', () => {
+                    const type = document.getElementById('creation-type').value;
+                    this.startAICreation(type);
+                });
+            }
+        }
+        
+        // ==================== 初始化应用 ====================
+        // 创建API客户端
+        const apiClient = new DeepSeekAPIClient(CONFIG.apiBase);
+        
+        // 创建UI管理器
+        const deepseekUI = new DeepSeekUI(apiClient);
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            deepseekUI.init();
+            
+            // 设置全局函数
+            window.startAICreation = (type) => deepseekUI.startAICreation(type);
+        });
+        
+        // 全局导出
+        window.deepseekUI = deepseekUI;
+        window.apiClient = apiClient;
+    </script>
+</body>
+</html>
