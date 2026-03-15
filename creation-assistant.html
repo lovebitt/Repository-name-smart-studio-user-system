@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎬 AI创作助手 - 为Nmyh NIUMA定制</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --story: #3b82f6;
+            --script: #8b5cf6;
+            --storyboard: #10b981;
+            --visual: #f59e0b;
+            --ai: #ec4899;
+            --prompt: #06b6d4;
+            --search: #6366f1;
+            --advice: #84cc16;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            min-height: 100vh;
+        }
+        
+        .assistant-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .assistant-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .assistant-card.active {
+            border-color: currentColor;
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .assistant-card.story { color: var(--story); }
+        .assistant-card.script { color: var(--script); }
+        .assistant-card.storyboard { color: var(--storyboard); }
+        .assistant-card.visual { color: var(--visual); }
+        .assistant-card.ai { color: var(--ai); }
+        .assistant-card.prompt { color: var(--prompt); }
+        .assistant-card.search { color: var(--search); }
+        .assistant-card.advice { color: var(--advice); }
+        
+        .workflow-step {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 12px 0;
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+        }
+        
+        .workflow-step:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateX(5px);
+        }
+        
+        .creation-input {
+            background: rgba(255, 255, 255, 0.07);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            color: white;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .creation-input:focus {
+            outline: none;
+            border-color: var(--story);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        
+        .output-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 16px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .assistant-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            background: currentColor;
+            color: white;
+        }
+        
+        .collaboration-line {
+            position: relative;
+            height: 2px;
+            background: linear-gradient(90deg, var(--story), var(--script), var(--storyboard), var(--visual), var(--ai), var(--prompt), var(--search), var(--advice));
+            margin: 30px 0;
+            border-radius: 1px;
+        }
+        
+        .collaboration-line::before {
+            content: '🤝 助手协作中';
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+        
+        .prompt-category {
+            background: rgba(6, 182, 212, 0.1);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+            transition: all 0.3s ease;
+        }
+        
+        .prompt-category:hover {
+            background: rgba(6, 182, 212, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .progress-ring {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: conic-gradient(currentColor var(--progress), rgba(255, 255, 255, 0.1) 0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .progress-ring::before {
+            content: '';
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(15, 23, 42, 0.9);
+        }
+        
+        .progress-text {
+            position: relative;
+            z-index: 1;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body class="text-gray-300">
+    <div class="min-h-screen p-4 md:p-6">
+        <!-- 顶部标题 -->
+        <header class="mb-8 text-center">
+            <div class="inline-block p-4 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 mb-4">
+                <h1 class="text-3xl md:text-4xl font-bold text-white">🎬 AI创作助手系统</h1>
+                <p class="text-lg text-blue-100 mt-2">为 Nmyh NIUMA 定制的专属创作团队</p>
+            </div>
+            <p class="text-gray-400 max-w-2xl mx-auto">8个专业助手，覆盖从故事创作到视频制作的完整流程</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- 左侧：创作助手面板 -->
+            <div class="lg:col-span-2">
+                <!-- 创作输入区 -->
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-white mb-4 flex items-center">
+                        <i class="fas fa-pen-nib mr-3"></i> 开始你的创作
+                    </h2>
+                    
+                    <div class="creation-input">
+                        <textarea id="creation-input" rows="4" placeholder="描述你的创作需求... 
+例如：
+• 我想创作一个关于未来城市的科幻故事
+• 需要制作一个3分钟的情感短片剧本
+• 为我的漫画设计分镜和视觉风格
+• 制作高质量的视频提示词包" class="w-full bg-transparent border-none outline-none text-white resize-none"></textarea>
+                        <div class="flex justify-between items-center mt-4">
+                            <div class="text-sm text-gray-400">
+                                <i class="fas fa-lightbulb mr-1"></i> 详细描述有助于助手更好理解
+                            </div>
+                            <div class="flex space-x-2">
+                                <button id="clear-input" class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition">
+                                    清空
+                                </button>
+                                <button id="start-creation" class="px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg transition font-medium">
+                                    <i class="fas fa-play mr-2"></i>开始创作
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 创作工作流 -->
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-white mb-4 flex items-center">
+                        <i class="fas fa-sitemap mr-3"></i> 完整创作工作流
+                    </h2>
+                    
+                    <div class="space-y-3">
+                        <div class="workflow-step" style="border-left-color: var(--story);">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center mr-3">
+                                        <i class="fas fa-book text-blue-400"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium text-white">1. 故事创作</div>
+                                        <div class="text-sm text-gray-400">构思和编写故事</div>
+                                    </div>
+                                </div>
+                                <div class="progress-ring story" style="--progress: 0%">
+                                    <span class="progress-text">0%</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="workflow-step" style="border-left-color: var(--script);">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center mr-3">
+                                        <i class="fas fa-scroll text-purple-400"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium text-white">2. 剧本制作</div>
+                                        <div class="text-sm text-gray-400">将故事转化为剧本</div>
+                                    </div>
+                                </div>
+                                <div class="progress-ring script" style="--progress: 0%">
+                                    <span class="progress-text">0%</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="workflow-step" style="border-left-color: var(--storyboard);">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center mr-3">
+                                        <i class="fas fa-film text-green-400"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium text-white">3. 分镜设计</div>
+                                        <div class="text-sm text-gray-400">将剧本转化为分镜</div>
+                                    </div>
+                                </div>
+                                <div class="progress-ring storyboard" style="--progress: 0%">
+                                    <span class="progress-text">0%</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="collaboration-line"></div>
+                        
+                        <div class="workflow-step" style="border-left-color: var(--prompt);">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center mr-3">
+                                        <i class="fas fa-keyboard text-cyan-400"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium text-white">4. 提示词制作</div>
+                                        <div class="text-sm text-gray-400">制作各类高质量提示词</div>
+                                    </div>
+                                </div>
+                                <div class="progress-ring prompt" style="--progress: 0%">
+                                    <span class="progress-text">0%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 创作输出区 -->
+                <div id="output-section" class="hidden">
+                    <h2 class="text-2xl font-bold text-white mb-4 flex items-center">
+                        <i class="fas fa-file-export mr-3"></i> 创作成果
+                    </h2>
+                    
+                    <div class="output-card">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold text-white">📖 故事大纲</h3>
+                            <button class="px-3 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg text-sm">
+                                <i class="fas fa-copy mr-1"></i>复制
+                            </button>
+                        </div>
+                        <div id="story-output" class="text-gray-300 whitespace-pre-line">
+                            <!-- 故事内容将在这里显示 -->
+                        </div>
+                    </div>
+                    
+                    <div class="output-card">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold text-white">🎭 剧本片段</h3>
+                            <button class="px-3 py-1 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 rounded-lg text-sm">
+                                <i class="fas fa-copy mr-1"></i>复制
+                            </button>
+                        </div>
+                        <div id="script-output" class="text-gray-300 whitespace-pre-line">
+                            <!-- 剧本内容将在这里显示 -->
+                        </div>
+                    </div>
+                    
+                    <div class="output-card">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold text-white">🎨 提示词包</h3>
+                            <button class="px-3 py-1 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 rounded-lg text-sm">
+                                <i class="fas fa-download mr-1"></i>下载全部
+                            </button>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="prompt-category">
+                                <div class="font-medium text-white mb-2">👤 人物提示词</div>
+                                <div id="character-prompts" class="text-sm text-gray-300"></div>
+                            </div>
+                            <div class="prompt-category">
+                                <div class="font-medium text-white mb-2">🧰 道具提示词</div>
+                                <div id="prop-prompts" class="text-sm text-gray-300"></div>
+                            </div>
+                            <div class="prompt-category">
+                                <div class="font-medium text-white mb-2">🏰 场景提示词</div>
+                                <div id="scene-prompts" class="text-sm text-gray-300"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：助手控制面板 -->
+            <div class="lg:col-span-1">
+                <!-- 助手状态 -->
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-white mb-4 flex items-center">
+                        <i class="fas fa-robot mr-3"></i> 创作助手团队
+                    </h2>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- 故事创作助手 -->
+                        <div class="assistant-card story" data-assistant="story">
+                            <div class="assistant-badge">故事</div>
+                            <div class="text-center">
+                                <div class="w-16 h-16 rounded-full bg-blue-500/20 flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-book text-2xl"></i>
+                                </div>
+                                <div class="font-medium text-white mb-1">故事创作助手</div>
+                                <div class="text-xs text-gray-400">创意生成 · 情节设计</div>
+                                <div class="mt-2 text-xs text-blue-300">
+                                    <i class="fas fa-bolt"></i> 准备就绪
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 剧本制作助手 -->
+                        <div class="assistant-card script" data-assistant="script">
+                            <div class="assistant-badge">剧本</div>
+                            <div class="text-center">
+                                <div class="w-16 h-16 rounded-full bg-purple-500/20 flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-scroll text-2xl"></i>
+                                </div>
+                                <div class="font-medium text-white mb-1">剧本制作助手</div>
+                                <div class="text-xs text-gray-400">剧本格式 · 对话编写</div>
+                                <div class="mt-2 text-xs text-purple-300">
+                                    <i class="fas fa-bolt"></i> 准备就绪
+                                </div>
+                            </div>
+                        </div>
