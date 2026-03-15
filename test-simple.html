@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能工作室连接测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .loading {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 智能工作室连接测试</h1>
+        
+        <div id="status1" class="status loading">
+            1. 测试服务器连接...
+        </div>
+        
+        <div id="status2" class="status">
+            2. 测试导演信息...
+        </div>
+        
+        <div id="status3" class="status">
+            3. 测试智能体列表...
+        </div>
+        
+        <div id="status4" class="status">
+            4. 测试创建项目...
+        </div>
+        
+        <div style="margin: 20px 0;">
+            <button onclick="runAllTests()">运行所有测试</button>
+            <button onclick="testCreateProject()">测试创建项目</button>
+            <button onclick="window.location.href='frontend.html'">打开完整界面</button>
+        </div>
+        
+        <div id="result" class="result" style="display: none;">
+            <h3>测试结果</h3>
+            <pre id="resultContent"></pre>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001/api';
+        
+        async function updateStatus(id, message, type = '') {
+            const element = document.getElementById(id);
+            element.textContent = message;
+            element.className = `status ${type}`;
+        }
+        
+        async function runAllTests() {
+            try {
+                // 1. 测试服务器连接
+                updateStatus('status1', '1. 测试服务器连接...', 'loading');
+                const serverTest = await fetch(`${API_BASE}/directors/me`);
+                if (!serverTest.ok) throw new Error(`服务器连接失败: ${serverTest.status}`);
+                updateStatus('status1', '✅ 1. 服务器连接成功', 'success');
+                
+                // 2. 测试导演信息
+                updateStatus('status2', '2. 测试导演信息...', 'loading');
+                const directorData = await serverTest.json();
+                if (!directorData.success) throw new Error('获取导演信息失败');
+                updateStatus('status2', `✅ 2. 导演: ${directorData.data.display_name}`, 'success');
+                
+                // 3. 测试智能体列表
+                updateStatus('status3', '3. 测试智能体列表...', 'loading');
+                const agentsResponse = await fetch(`${API_BASE}/agents`);
+                const agentsData = await agentsResponse.json();
+                if (!agentsData.success) throw new Error('获取智能体列表失败');
+                updateStatus('status3', `✅ 3. 智能体: ${agentsData.count}个在线`, 'success');
+                
+                // 4. 测试创建项目
+                updateStatus('status4', '4. 测试创建项目...', 'loading');
+                const projectData = {
+                    name: '测试项目 - ' + new Date().toLocaleTimeString(),
+                    description: '连接测试创建的项目',
+                    type: 'test',
+                    metadata: { test: true }
+                };
+                
+                const createResponse = await fetch(`${API_BASE}/projects`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(projectData)
+                });
+                
+                const createResult = await createResponse.json();
+                if (!createResult.success) throw new Error('创建项目失败');
+                updateStatus('status4', `✅ 4. 项目创建成功! ID: ${createResult.data.id}`, 'success');
+                
+                // 显示结果
+                document.getElementById('result').style.display = 'block';
+                document.getElementById('resultContent').textContent = JSON.stringify({
+                    服务器状态: '运行正常',
+                    导演: directorData.data.display_name,
+                    智能体数量: agentsData.count,
+                    最新项目ID: createResult.data.id,
+                    项目名称: createResult.data.name,
+                    测试时间: new Date().toLocaleString()
+                }, null, 2);
+                
+                alert('🎉 所有测试通过！系统运行正常。');
+                
+            } catch (error) {
+                updateStatus('status4', `❌ 测试失败: ${error.message}`, 'error');
+                alert(`测试失败: ${error.message}\n请检查服务器是否运行。`);
+            }
+        }
+        
+        async function testCreateProject() {
+            const projectName = prompt('请输入项目名称:', '我的创作项目');
+            if (!projectName) return;
+            
+            const projectDesc = prompt('请输入项目描述（可选）:');
+            const projectType = prompt('请输入项目类型:', 'video_creation');
+            
+            try {
+                const projectData = {
+                    name: projectName,
+                    description: projectDesc || '',
+                    type: projectType,
+                    metadata: {
+                        created_at: new Date().toISOString(),
+                        created_by: 'Nmyh_NIUMA'
+                    }
+                };
+                
+                const response = await fetch(`${API_BASE}/projects`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(projectData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`🎉 项目创建成功!\nID: ${result.data.id}\n名称: ${result.data.name}`);
+                    
+                    document.getElementById('result').style.display = 'block';
+                    document.getElementById('resultContent').textContent = JSON.stringify(result.data, null, 2);
+                } else {
+                    alert(`创建失败: ${result.error || '未知错误'}`);
+                }
+                
+            } catch (error) {
+                alert(`创建失败: ${error.message}\n请检查服务器连接。`);
+            }
+        }
+        
+        // 页面加载时自动测试连接
+        window.onload = async function() {
+            try {
+                const test = await fetch(`${API_BASE}/directors/me`);
+                if (test.ok) {
+                    updateStatus('status1', '✅ 1. 服务器已连接，点击按钮开始测试', 'success');
+                }
+            } catch (error) {
+                updateStatus('status1', '❌ 1. 服务器未连接，请先启动服务器', 'error');
+            }
+        };
+    </script>
+</body>
+</html>
