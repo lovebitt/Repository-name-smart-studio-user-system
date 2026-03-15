@@ -10,6 +10,7 @@ const agentRoutes = require('./routes/agentRoutes');
 const projectRoutes = require('./routes/projectRoutes');
 const workflowRoutes = require('./routes/workflowRoutes');
 const dreamaiRoutes = require('./routes/dreamaiRoutes');
+const proxyRoutes = require('./routes/proxyRoutes');
 
 // 创建Express应用
 const app = express();
@@ -44,6 +45,7 @@ app.use('/api/agents', agentRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/workflows', workflowRoutes);
 app.use('/api/dreamai', dreamaiRoutes);
+app.use('/api/proxy', proxyRoutes); // 代理路由
 
 // 404处理
 app.use((req, res) => {
@@ -65,8 +67,11 @@ app.use((err, req, res, next) => {
 
 // 启动服务器
 if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`🚀 服务器运行在 http://localhost:${PORT}`);
+  const HOST = '0.0.0.0'; // 监听所有网络接口
+  
+  app.listen(PORT, HOST, () => {
+    console.log(`🚀 服务器运行在 http://${HOST}:${PORT}`);
+    console.log(`🌐 公网访问: http://43.128.253.193:${PORT}`);
     console.log(`📊 数据库: SQLite (智能工作室用户系统)`);
     console.log(`🎬 导演: Nmyh NIUMA`);
     console.log(`🤖 智能体: 5个专业AI助手已就绪`);
