@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能工作室一体化版 - 自动连接</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --secondary: #8b5cf6;
+            --accent: #10b981;
+            --dark: #1f2937;
+            --light: #f9fafb;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .connection-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .badge-proxy {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+        }
+        
+        .badge-cloud {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+        }
+        
+        .badge-local {
+            background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+            color: white;
+        }
+        
+        .connection-status {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            margin: 10px 0;
+        }
+        
+        .connected {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+        
+        .disconnected {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+        
+        .connecting {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .server-info {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+        
+        .connection-option {
+            padding: 16px;
+            border-radius: 12px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .connection-option:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .connection-option.selected {
+            border: 2px solid #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+        }
+        
+        .auto-select-btn {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .auto-select-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3);
+        }
+        
+        .auto-select-btn:active {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+    <div class="min-h-screen p-4 md:p-6">
+        <!-- 顶部导航 -->
+        <nav class="glass-card rounded-2xl p-4 mb-6 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+                    <i class="fas fa-robot text-white text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-white">智能工作室一体化版</h1>
+                    <p class="text-sm text-gray-200">自动连接 · 智能选择 · 无忧使用</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button id="auto-connect-btn" class="auto-select-btn flex items-center space-x-2">
+                    <i class="fas fa-magic"></i>
+                    <span>智能自动连接</span>
+                </button>
+            </div>
+        </nav>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- 左侧：连接选择和状态 -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- 连接状态卡片 -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                        <i class="fas fa-plug mr-2"></i> 智能连接状态
+                    </h3>
+                    
+                    <div id="connection-status" class="connection-status connecting">
+                        <i class="fas fa-circle-notch fa-spin mr-2"></i>
+                        正在检测最佳连接方式...
+                    </div>
+                    
+                    <div id="selected-connection" class="mt-4 p-4 bg-white/10 rounded-xl hidden">
+                        <h4 class="font-semibold text-white mb-2">已选择连接方式</h4>
+                        <div id="connection-details" class="text-sm text-gray-300"></div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h4 class="text-sm font-medium text-gray-300 mb-2">检测结果</h4>
+                        <div class="server-info">
+                            <div class="text-gray-300" id="detection-results">
+                                正在测试各种连接方式...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 连接方式选择 -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                        <i class="fas fa-network-wired mr-2"></i> 连接方式选择
+                    </h3>
+                    
+                    <div class="space-y-3">
+                        <!-- 代理连接 -->
+                        <div id="option-proxy" class="connection-option bg-white/10" onclick="selectConnection('proxy')">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 rounded-full bg-gradient-to-r from-orange-500 to-yellow-500 flex items-center justify-center">
+                                        <i class="fas fa-exchange-alt text-white"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium text-white">代理连接</div>
+                                        <div class="text-xs text-gray-400">通过服务器中转，最稳定</div>
+                                    </div>
+                                </div>
+                                <span class="connection-badge badge-proxy">
+                                    <i class="fas fa-exchange-alt"></i>
+                                    <span>代理</span>
+                                </span>
+                            </div>
+                            <div class="mt-3 text-xs text-gray-300">
+                                <i class="fas fa-check-circle text-green-400 mr-1"></i>
+                                <span id="proxy-status">检测中...</span>
+                            </div>
+                        </div>
+                        
+                        <!-- 云端连接 -->
+                        <div id="option-cloud" class="connection-option bg-white/10" onclick="selectConnection('cloud')">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center">
+                                        <i class="fas fa-cloud text-white"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium text-white">云端连接</div>
+                                        <div class="text-xs text-gray-400">直接连接，速度最快</div>
+                                    </div>
+                                </div>
+                                <span class="connection-badge badge-cloud">
+                                    <i class="fas fa-cloud"></i>
+                                    <span>云端</span>
+                                </span>
+                            </div>
+                            <div class="mt-3 text-xs text-gray-300">
+                                <i class="fas fa-check-circle text-green-400 mr-1"></i>
+                                <span id="cloud-status">检测中...</span>
+                            </div>
+                        </div>
+                        
+                        <!-- 本地连接 -->
+                        <div id="option-local" class="connection-option bg-white/10" onclick="selectConnection('local')">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 rounded-full bg-gradient-to-r from-green-500 to-green-600 flex items-center justify-center">
+                                        <i class="fas fa-desktop text-white"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium text-white">本地连接</div>
+                                        <div class="text-xs text-gray-400">完全离线，无需网络</div>
+                                    </div>
+                                </div>
+                                <span class="connection-badge badge-local">
+                                    <i class="fas fa-desktop"></i>
+                                    <span>本地</span>
+                                </span>
+                            </div>
+                            <div class="mt-3 text-xs text-gray-300">
+                                <i class="fas fa-check-circle text-green-400 mr-1"></i>
+                                <span id="local-status">检测中...</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 text-sm text-gray-400">
+                        <i class="fas fa-lightbulb mr-1"></i>
+                        点击选择连接方式，或使用"智能自动连接"
+                    </div>
+                </div>
+
+                <!-- 快速操作 -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                        <i class="fas fa-bolt mr-2"></i> 快速操作
+                    </h3>
+                    
+                    <div class="space-y-3">
+                        <button id="test-all-connections" class="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl font-medium transition flex items-center justify-center space-x-2">
+                            <i class="fas fa-vial"></i>
+                            <span>重新检测所有连接</span>
+                        </button>
+                        
+                        <button id="create-project-btn" class="w-full py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl font-medium transition flex items-center justify-center space-x-2" disabled>
+                            <i class="fas fa-plus-circle"></i>
+                            <span>创建项目（需先连接）</span>
+                        </button>
+                        
+                        <button id="view-projects-btn" class="w-full py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl font-medium transition flex items-center justify-center space-x-2" disabled>
+                            <i class="fas fa-list"></i>
+                            <span>查看项目（需先连接）</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 中间和右侧：主界面 -->
+            <div class="lg:col-span-2">
+                <div class="glass-card rounded-2xl p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-white flex items-center">
+                            <i class="fas fa-project-diagram mr-3"></i> 项目管理
+                            <span class="ml-2 text-sm bg-white/20 text-white px-2 py-1 rounded-full" id="projects-count">等待连接</span>
+                        </h2>
+                        <div class="flex space-x-2">
+                            <button id="refresh-data-btn" class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition" disabled>
+                                刷新数据
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="main-content" class="text-center py-12">
+                        <div class="mb-6">
+                            <i class="fas fa-robot text-6xl text-gray-400 mb-4"></i>
+                            <h3 class="text-xl font-semibold text-gray-300">等待智能连接</h3>
+                            <p class="text-gray-400 mt-2">系统正在自动检测最佳连接方式...</p>
+                        </div>
+                        
+                        <div class="max-w-md mx-auto bg-white/10 rounded-xl p-6">
+                            <h4 class="text-lg font-semibold text-white mb-3">一体化连接优势</h4>
+                            <ul class="text-left text-gray-300 space-y-2">
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-green-400 mt-1 mr-2"></i>
+                                    <span>自动检测最佳连接方式</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-green-400 mt-1 mr-2"></i>
+                                    <span>三种连接方式智能切换</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-green-400 mt-1 mr-2"></i>
+                                    <span>连接失败时自动重试</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-green-400 mt-1 mr-2"></i>
+                                    <span>详细的连接状态报告</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 连接详情面板 -->
+                <div class="glass-card rounded-2xl p-6 mt-6">
+                    <h2 class="text-2xl font-bold text-white flex items-center mb-6">
+                        <i class="fas fa-info-circle mr-3"></i> 连接详情
+                    </h2>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-white/5 rounded-xl p-4">
+                            <h4 class="font-semibold text-white mb-3 flex items-center">
+                                <i class="fas fa-exchange-alt mr-2 text-orange-400"></i> 代理连接
+                            </h4>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">服务器:</span>
+                                    <span class="text-white font-mono">43.128.253.193:3001</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">路径:</span>
+                                    <span class="text-white font-mono">/api/proxy</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">状态:</span>
+                                    <span id="proxy-detail-status" class="text-yellow-400">检测中</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white/5 rounded-xl p-4">
+                            <h4 class="font-semibold text-white mb-3 flex items-center">
+                                <i class="fas fa-cloud mr-2 text-blue-400"></i> 云端连接
+                            </h4>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">服务器:</span>
+                                    <span class="text-white font-mono">43.128.253.193:3001</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">路径:</span>
+                                    <span class="text-white font-mono">/api</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">状态:</span>
+                                    <span id="cloud-detail-status" class="text-yellow-400">检测中</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white/5 rounded-xl p-4">
+                            <h4 class="font-semibold text-white mb-3 flex items-center">
+                                <i class="fas fa-desktop mr-2 text-green-400"></i> 本地连接
+                            </h4>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">服务器:</span>
+                                    <span class="text-white font-mono">localhost:3001</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">路径:</span>
+                                    <span class="text-white font-mono">/api</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">状态:</span>
+                                    <span id="local-detail-status" class="text-yellow-400">检测中</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-4 bg-purple-500/10 rounded-xl">
+                        <h4 class="font-semibold text-white mb-2">💡 智能连接策略</h4>
+                        <p class="text-sm text-gray-300">
+                            系统按以下顺序尝试连接：
+                            1. <strong>代理连接</strong>：最稳定，通过我的服务器中转
+                            2. <strong>云端连接</strong>：速度最快，直接连接我的服务器
+                            3. <strong>本地连接</strong>：完全离线，无需网络连接
+                            系统会自动选择第一个成功的连接方式。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部状态栏 -->
+        <div class="mt-6 text-center text-gray-400 text-sm">
+            <p>智能工作室一体化版 v1.0.0 | 当前连接: <span id="current-connection" class="text-yellow-400">检测中</span> | AI导演: <span class="text-blue-400">等待连接</span></p>
+            <p class="mt-1">最后检测: <span id="last-detection">刚刚</span> | 自动重连: <span class="text-green-400">启用</span></p>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // 连接配置
+        const CONNECTIONS = {
+            proxy: {
+                name: '代理连接',
+                badge: 'badge-proxy',
+                icon: 'fa-exchange-alt',
+                color: 'from-orange-500 to-yellow-500',
+                apiBase: 'http://43.128.253.193:3001/api/proxy',
+                testEndpoint: '/directors/me',
+                description: '通过服务器中转，最稳定'
+            },
+            cloud: {
+                name: '云端连接',
+                badge: 'badge-cloud',
+                icon: 'fa-cloud',
+                color: 'from-blue-500 to-blue-600',
+                apiBase: 'http://43.128.253.193:3001/api',
+                testEndpoint: '/directors/me',
+                description: '直接连接，速度最快'
+            },
+            local: {
+                name: '本地连接',
+                badge: 'badge-local',
+                icon: 'fa-desktop',
+                color: 'from-green-500 to-green-600',
+                apiBase: 'http://localhost:3001/api',
+                testEndpoint: '/directors/me',
+                description: '完全离线，无需网络'
+            }
+        };
+        
+        // 状态变量
+        let currentConnection = null;
+        let connectionStatus = 'disconnected';
+        let detectionResults = {};
+        
+        // 更新连接状态显示
+        function updateConnectionStatus(status, message = '') {
+            connectionStatus = status;
+            const statusElement = document.getElementById('connection-status');
+            const currentConnectionElement = document.getElementById('current-connection');
+            
+            const statusConfig = {
+                'connected': {
+                    class: 'connected',
+                    icon: 'fa-check-circle',
+                    text: `✅ ${message || '连接成功'}`,
+                    connectionText: currentConnection ? CONNECTIONS[currentConnection].name : '已连接'
+                },
+                'disconnected': {
+                    class: 'disconnected',
+                    icon: 'fa-times-circle',
+                    text: '❌ 连接断开',
+                    connectionText: '断开'
+                },
+                'connecting': {
+                    class: 'connecting',
+                    icon: 'fa-circle-notch fa-spin',
+                    text: '🔄 正在连接...',
+                    connectionText: '连接中'
+                },
+                'detecting': {
+                    class: 'connecting',
+                    icon: 'fa-search fa-spin',
+                    text: '🔍 正在检测最佳连接方式...',
+                    connectionText: '检测中'
+                },
+                'error': {
+                    class: 'disconnected',
+                    icon: 'fa-exclamation-triangle',
+                    text: `⚠️ ${message}`,
+                    connectionText: '错误'
+                }
+            };
+            
+            const config = statusConfig[status] || statusConfig.disconnected;
+            
+            statusElement.className = `connection-status ${config.class}`;
+            statusElement.innerHTML = `<i class="fas ${config.icon} mr-2"></i> ${config.text}`;
+            currentConnectionElement.textContent = config.connectionText;
+            currentConnectionElement.className = status === 'connected' ? 'text-green-400' : 
+                                                status === 'connecting' || status === 'detecting' ? 'text-yellow-400' : 'text-red-400';
+        }
+        
+        // 测试单个连接
+        async function testConnection(connectionType) {
+            const connection = CONNECTIONS[connectionType];
+            if (!connection) return { success: false, error: '未知连接类型' };
+            
+            try {
+                const startTime = Date.now();
+                const response = await fetch(`${connection.apiBase}${connection.testEndpoint}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                    signal: AbortSignal.timeout(5000) // 5秒超时
+                });
+                
+                const endTime = Date.now();
+                const responseTime = endTime - startTime;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        return {
+                            success: true,
+                            responseTime: responseTime,
+                            data: data.data,
+                            message: `✅ ${connection.name} 可用 (${responseTime}ms)`
+                        };
+                    } else {
+                        return {
+                            success: false,
+                            error: data.error || 'API返回错误',
+                            message: `❌ ${connection.name}: API错误`
+                        };
+                    }
+                } else {
+                    return {
+                        success: false,
+                        error: `HTTP ${response.status}`,
+                        message: `❌ ${connection.name}: HTTP ${response.status}`
+                    };
+                }
+            } catch (error) {
+                return {
+                    success: false,
+                    error: error.message,
+                    message: `❌ ${connection.name}: ${error.message}`
+                };
+            }
+        }
+        
+        // 检测所有连接
+        async function detectAllConnections() {
+            updateConnectionStatus('detecting');
+            
+            // 重置状态
+            detectionResults = {};
+            
+            // 更新检测结果显示
+            document.getElementById('detection-results').innerHTML = '正在测试各种连接方式...';
+            
+            // 测试所有连接
+            const tests = [];
+            for (const [type, config] of Object.entries(CONNECTIONS)) {
+                tests.push(testConnection(type).then(result => {
+                    detectionResults[type] = result;
+                    
+                    // 更新状态显示
+                    const statusElement = document.getElementById(`${type}-status`);
+                    const detailElement = document.getElementById(`${type}-detail-status`);
+                    
+                    if (result.success) {
+                        statusElement.innerHTML = `<i class="fas fa-check-circle text-green-400 mr-1"></i>可用 (${result.responseTime}ms)`;
+                        detailElement.textContent = `可用 (${result.responseTime}ms)`;
+                        detailElement.className = 'text-green-400';
+                    } else {
+                        statusElement.innerHTML = `<i class="fas fa-times-circle text-red-400 mr-1"></i>失败`;
+                        detailElement.textContent = '失败';
+                        detailElement.className = 'text-red-400';
+                    }
+                    
+                    return result;
+                }));
+            }
+            
+            // 等待所有测试完成
+            await Promise.all(tests);
+            
+            // 更新检测结果
+            updateDetectionResults();
+            
+            // 自动选择最佳连接
+            autoSelectBestConnection();
+            
+            return detectionResults;
+        }
+        
+        // 更新检测结果显示
+        function updateDetectionResults() {
+            const resultsElement = document.getElementById('detection-results');
+            let html = '';
+            
+            for (const [type, result] of Object.entries(detectionResults)) {
+                const connection = CONNECTIONS[type];
+                const icon = result.success ? '✅' : '❌';
+                const time = result.success ? ` (${result.responseTime}ms)` : '';
+                
+                html += `<div class="mb-1">${icon} ${connection.name}${time}: ${result.message}</div>`;
+            }
+            
+            resultsElement.innerHTML = html;
+            document.getElementById('last-detection').textContent = new Date().toLocaleTimeString('zh-CN').slice(0, 5);
+        }
+        
+        // 自动选择最佳连接
+        function autoSelectBestConnection() {
+            // 按优先级选择：proxy → cloud → local
+            const priorityOrder = ['proxy', 'cloud', 'local'];
+            
+            for (const type of priorityOrder) {
+                if (detectionResults[type] && detectionResults[type].success) {
+                    selectConnection(type);
+                    return;
+                }
+            }
+            
+            // 如果没有可用的连接
+            updateConnectionStatus('error', '所有连接方式都失败了');
+            showNotification('❌ 所有连接方式都失败了，请检查网络或尝试其他方法', 'error');
+        }
+        
+        // 选择连接
+        function selectConnection(connectionType) {
+            if (!detectionResults[connectionType] || !detectionResults[connectionType].success) {
+                showNotification(`❌ ${CONNECTIONS[connectionType].name} 不可用，请选择其他连接方式`, 'error');
+                return;
+            }
+            
+            // 更新选中状态
+            document.querySelectorAll('.connection-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            document.getElementById(`option-${connectionType}`).classList.add('selected');
+            
+            // 设置当前连接
+            currentConnection = connectionType;
+            const connection = CONNECTIONS[connectionType];
+            
+            // 更新连接详情
+            const detailsElement = document.getElementById('connection-details');
+            detailsElement.innerHTML = `
+                <div class="flex items-center space-x-2 mb-2">
+                    <span class="connection-badge ${connection.badge}">
+                        <i class="fas ${connection.icon}"></i>
+                        <span>${connection.name}</span>
+                    </span>
+                    <span class="text-green-400">✅ 可用</span>
+                </div>
+                <div class="text-sm">
+                    <div>API地址: <span class="font-mono">${connection.apiBase}</span></div>
+                    <div>响应时间: <span class="font-mono">${detectionResults[connectionType].responseTime}ms</span></div>
+                    <div>导演: <span class="font-semibold">${detectionResults[connectionType].data?.display_name || '未知'}</span></div>
+                </div>
+            `;
+            
+            // 显示连接详情卡片
+            document.getElementById('selected-connection').classList.remove('hidden');
+            
+            // 更新连接状态
+            updateConnectionStatus('connected', `${connection.name} 已连接`);
+            
+            // 启用功能按钮
+            document.getElementById('create-project-btn').disabled = false;
+            document.getElementById('view-projects-btn').disabled = false;
+            document.getElementById('refresh-data-btn').disabled = false;
+            
+            // 更新主界面
+            updateMainInterface();
+            
+            showNotification(`✅ 已连接到 ${connection.name}`, 'success');
+        }
+        
+        // 更新主界面
+        function updateMainInterface() {
+            const mainContent = document.getElementById('main-content');
+            const connection = CONNECTIONS[currentConnection];
+            
+            mainContent.innerHTML = `
+                <div class="mb-6">
+                    <div class="w-20 h-20 rounded-full bg-gradient-to-r ${connection.color} flex items-center justify-center mx-auto mb-4">
+                        <i class="fas ${connection.icon} text-white text-3xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white">${connection.name} 已就绪</h3>
+                    <p class="text-gray-400 mt-2">现在可以开始使用智能工作室功能</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                    <button onclick="createProject()" class="p-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl font-medium transition flex flex-col items-center justify-center">
+                        <i class="fas fa-plus-circle text-2xl mb-2"></i>
+                        <span class="font-semibold">创建新项目</span>
+                        <span class="text-sm opacity-80 mt-1">开始新的创作</span>
+                    </button>
+                    
+                    <button onclick="viewProjects()" class="p-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-xl font-medium transition flex flex-col items-center justify-center">
+                        <i class="fas fa-list text-2xl mb-2"></i>
+                        <span class="font-semibold">查看项目</span>
+                        <span class="text-sm opacity-80 mt-1">管理现有项目</span>
+                    </button>
+                    
+                    <button onclick="testAllConnections()" class="p-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl font-medium transition flex flex-col items-center justify-center">
+                        <i class="fas fa-sync-alt text-2xl mb-2"></i>
+                        <span class="font-semibold">重新检测</span>
+                        <span class="text-sm opacity-80 mt-1">测试连接状态</span>
+                    </button>
+                    
+                    <button onclick="switchConnection()" class="p-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl font-medium transition flex flex-col items-center justify-center">
+                        <i class="fas fa-exchange-alt text-2xl mb-2"></i>
+                        <span class="font-semibold">切换连接</span>
+                        <span class="text-sm opacity-80 mt-1">选择其他方式</span>
+                    </button>
+                </div>
+            `;
+        }
+        
+        // 创建项目
+        async function createProject() {
+            if (!currentConnection) {
+                showNotification('❌ 请先选择连接方式', 'error');
+                return;
+            }
+            
+            const projectName = prompt('请输入项目名称:');
+            if (!projectName) return;
+            
+            const projectDesc = prompt('请输入项目描述 (可选):');
+            const projectType = prompt('请输入项目类型 (如: video_creation, story_creation):', 'video_creation');
+            
+            try {
+                const connection = CONNECTIONS[currentConnection];
+                const projectData = {
+                    name: projectName,
+                    description: projectDesc,
+                    type: projectType,
+                    metadata: {
+                        connection_mode: currentConnection,
+                        created_via: 'all_in_one_frontend',
+                        created_at: new Date().toISOString()
+                    }
+                };
+                
+                const response = await fetch(`${connection.apiBase}/projects`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(projectData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification(`🎉 项目创建成功! ID: ${data.data.id}`);
+                } else {
+                    showNotification(`❌ 创建失败: ${data.error || '未知错误'}`, 'error');
+                }
+            } catch (error) {
+                console.error('创建项目失败:', error);
+                showNotification(`❌ 创建失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 查看项目
+        async function viewProjects() {
+            if (!currentConnection) {
+                showNotification('❌ 请先选择连接方式', 'error');
+                return;
+            }
+            
+            try {
+                const connection = CONNECTIONS[currentConnection];
+                const response = await fetch(`${connection.apiBase}/projects`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const mainContent = document.getElementById('main-content');
+                    const projectsCount = document.getElementById('projects-count');
+                    
+                    projectsCount.textContent = `${data.count}个项目`;
+                    
+                    if (data.data.length > 0) {
+                        let html = `
+                            <div class="mb-6">
+                                <h3 class="text-2xl font-bold text-white">项目列表</h3>
+                                <p class="text-gray-400 mt-2">共 ${data.data.length} 个项目</p>
+                            </div>
+                            
+                            <div class="space-y-4 max-w-4xl mx-auto">
+                        `;
+                        
+                        data.data.forEach(project => {
+                            const progress = project.progress || 0;
+                            
+                            html += `
+                                <div class="bg-white/5 rounded-xl p-4 hover:bg-white/10 transition">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <h4 class="font-semibold text-white">${project.name}</h4>
+                                            <p class="text-sm text-gray-400 mt-1">${project.description || '暂无描述'}</p>
+                                            <div class="flex items-center space-x-3 mt-2">
+                                                <span class="px-2 py-1 bg-blue-500/20 text-blue-300 rounded text-xs">${project.type || '未分类'}</span>
+                                                <span class="px-2 py-1 ${project.status === 'completed' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'} rounded text-xs">
+                                                    ${project.status === 'completed' ? '已完成' : '进行中'}
+                                                </span>
+                                                <span class="px-2 py-1 ${getConnectionBadge(currentConnection)} rounded text-xs">
+                                                    <i class="fas ${CONNECTIONS[currentConnection].icon} mr-1"></i>${currentConnection}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-2xl font-bold text-white">${progress}%</div>
+                                            <div class="text-xs text-gray-400">进度</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-3">
+                                        <div class="flex justify-between text-xs text-gray-400 mb-1">
+                                            <span>项目进度</span>
+                                            <span>${progress}%</span>
+                                        </div>
+                                        <div class="h-2 bg-gray-700 rounded-full overflow-hidden">
+                                            <div class="h-full ${getProgressColor(currentConnection)} transition-all duration-500" style="width: ${progress}%"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-3 flex justify-between items-center text-sm">
+                                        <div class="text-gray-400">
+                                            <i class="far fa-calendar mr-1"></i>
+                                            ${new Date(project.created_at).toLocaleDateString('zh-CN')}
+                                        </div>
+                                        <button class="px-3 py-1 bg-white/20 hover:bg-white/30 text-white rounded-lg text-xs transition" onclick="viewProjectDetail(${project.id})">
+                                            查看详情
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        
+                        html += `
+                            </div>
+                            <div class="mt-6">
+                                <button onclick="updateMainInterface()" class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition">
+                                    返回主界面
+                                </button>
+                            </div>
+                        `;
+                        
+                        mainContent.innerHTML = html;
+                    } else {
+                        mainContent.innerHTML = `
+                            <div class="text-center py-8">
+                                <i class="fas fa-inbox text-4xl text-gray-400 mb-4"></i>
+                                <h3 class="text-xl font-semibold text-gray-300">暂无项目</h3>
+                                <p class="text-gray-400 mt-2">创建你的第一个项目开始创作</p>
+                                <button onclick="createProject()" class="mt-4 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium transition">
+                                    创建第一个项目
+                                </button>
+                            </div>
+                        `;
+                    }
+                }
+            } catch (error) {
+                console.error('查看项目失败:', error);
+                showNotification(`❌ 查看项目失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 获取连接徽章
+        function getConnectionBadge(connectionType) {
+            const badges = {
+                proxy: 'bg-orange-500/20 text-orange-300',
+                cloud: 'bg-blue-500/20 text-blue-300',
+                local: 'bg-green-500/20 text-green-300'
+            };
+            return badges[connectionType] || 'bg-gray-500/20 text-gray-300';
+        }
+        
+        // 获取进度条颜色
+        function getProgressColor(connectionType) {
+            const colors = {
+                proxy: 'bg-gradient-to-r from-orange-500 to-yellow-500',
+                cloud: 'bg-gradient-to-r from-blue-500 to-purple-500',
+                local: 'bg-gradient-to-r from-green-500 to-teal-500'
+            };
+            return colors[connectionType] || 'bg-gradient-to-r from-gray-500 to-gray-700';
+        }
+        
+        // 查看项目详情
+        async function viewProjectDetail(projectId) {
+            // 简化实现，实际可以打开模态框显示详情
+            alert(`查看项目 ${projectId} 的详情\n功能将在后续版本中完善`);
+        }
+        
+        // 切换连接
+        function switchConnection() {
+            // 重置选择
+            document.querySelectorAll('.connection-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            document.getElementById('selected-connection').classList.add('hidden');
+            
+            // 重置主界面
+            document.getElementById('main-content').innerHTML = `
+                <div class="mb-6">
+                    <i class="fas fa-robot text-6xl text-gray-400 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-gray-300">请选择连接方式</h3>
+                    <p class="text-gray-400 mt-2">从左侧选择一种连接方式继续</p>
+                </div>
+            `;
+            
+            // 禁用功能按钮
+            document.getElementById('create-project-btn').disabled = true;
+            document.getElementById('view-projects-btn').disabled = true;
+            document.getElementById('refresh-data-btn').disabled = true;
+            
+            updateConnectionStatus('detecting');
+            showNotification('🔄 请选择新的连接方式', 'info');
+        }
+        
+        // 显示通知
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300 transform translate-x-full ${type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500'} text-white`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // 显示动画
+            setTimeout(() => {
+                notification.classList.remove('translate-x-full');
+                notification.classList.add('translate-x-0');
+            }, 10);
+            
+            // 隐藏动画
+            setTimeout(() => {
+                notification.classList.remove('translate-x-0');
+                notification.classList.add('translate-x-full');
+                
+                // 移除元素
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+        
+        // 初始化页面
+        async function initPage() {
+            // 设置事件监听器
+            document.getElementById('auto-connect-btn').addEventListener('click', () => {
+                detectAllConnections();
+            });
+            
+            document.getElementById('test-all-connections').addEventListener('click', () => {
+                detectAllConnections();
+            });
+            
+            document.getElementById('create-project-btn').addEventListener('click', createProject);
+            document.getElementById('view-projects-btn').addEventListener('click', viewProjects);
+            document.getElementById('refresh-data-btn').addEventListener('click', viewProjects);
+            
+            // 自动检测连接
+            setTimeout(() => {
+                detectAllConnections();
+            }, 1000);
+        }
+        
+        // 全局函数
+        window.testAllConnections = detectAllConnections;
+        window.createProject = createProject;
+        window.viewProjects = viewProjects;
+        window.viewProjectDetail = viewProjectDetail;
+        window.switchConnection = switchConnection;
+        window.selectConnection = selectConnection;
+        window.updateMainInterface = updateMainInterface;
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', initPage);
+    </script>
+</body>
+</html>
