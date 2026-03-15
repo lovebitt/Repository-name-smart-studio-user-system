@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎬 智能工作室 - 在线版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎬</text></svg>">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --secondary: #8b5cf6;
+            --accent: #10b981;
+            --dark: #1f2937;
+            --light: #f9fafb;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .website-badge {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        
+        .feature-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-5px);
+        }
+        
+        .version-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 12px 0;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .version-card:hover {
+            border-color: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.08);
+        }
+        
+        .version-card.selected {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+        
+        .chat-bubble {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            margin: 8px 0;
+            position: relative;
+        }
+        
+        .chat-bubble.ai {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .chat-bubble.user {
+            background: rgba(139, 92, 246, 0.2);
+            border: 1px solid rgba(139, 92, 246, 0.4);
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            background: rgba(16, 185, 129, 0.9);
+            color: white;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .project-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 10px 0;
+            transition: all 0.3s ease;
+        }
+        
+        .project-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+    <div class="min-h-screen p-4 md:p-6">
+        <!-- 顶部导航 -->
+        <nav class="glass-card rounded-2xl p-4 mb-6 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 rounded-full bg-gradient-to-r from-orange-500 to-yellow-500 flex items-center justify-center">
+                    <i class="fas fa-film text-white text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-white">🎬 智能工作室 - 在线版</h1>
+                    <p class="text-sm text-gray-200">无需安装 · 跨平台访问 · 永久在线</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="website-badge">
+                    <i class="fas fa-globe"></i>
+                    <span>在线网站版</span>
+                </span>
+                <button id="save-data" class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition flex items-center space-x-2">
+                    <i class="fas fa-save"></i>
+                    <span>保存数据</span>
+                </button>
+            </div>
+        </nav>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- 左侧：版本选择和功能 -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- 欢迎卡片 -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                        <i class="fas fa-rocket mr-2"></i> 欢迎使用智能工作室！
+                    </h3>
+                    
+                    <p class="text-gray-300 mb-4">
+                        这是一个完全在线的智能创作工作室，专为AI视频创作者设计。
+                        无需安装，无需配置，打开即用。
+                    </p>
+                    
+                    <div class="mt-4 p-3 bg-green-500/10 rounded-lg">
+                        <div class="flex items-center">
+                            <i class="fas fa-check-circle text-green-400 mr-2"></i>
+                            <span class="text-sm text-gray-300">✅ 当前状态: <span class="text-green-400 font-medium">在线运行</span></span>
+                        </div>
+                        <div class="flex items-center mt-1">
+                            <i class="fas fa-check-circle text-green-400 mr-2"></i>
+                            <span class="text-sm text-gray-300">✅ 数据保存: <span class="text-green-400 font-medium">浏览器本地存储</span></span>
+                        </div>
+                        <div class="flex items-center mt-1">
+                            <i class="fas fa-check-circle text-green-400 mr-2"></i>
+                            <span class="text-sm text-gray-300">✅ 平台兼容: <span class="text-green-400 font-medium">Windows/Mac/Linux/手机</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 版本选择 -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                        <i class="fas fa-layer-group mr-2"></i> 选择工作室模式
+                    </h3>
+                    
+                    <div class="space-y-3" id="version-selection">
+                        <div class="version-card selected" data-version="standalone">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center">
+                                        <i class="fas fa-desktop text-white"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium text-white">🖥️ 完全独立版</div>
+                                        <div class="text-xs text-gray-400">无需网络，完全离线</div>
+                                    </div>
+                                </div>
+                                <i class="fas fa-check-circle text-green-400"></i>
+                            </div>
+                            <p class="text-sm text-gray-300 mt-2">
+                                所有功能本地运行，无需任何外部连接。数据保存在浏览器中。
+                            </p>
+                        </div>
+                        
+                        <div class="version-card" data-version="agents">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center">
+                                        <i class="fas fa-robot text-white"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium text-white">🤖 本地智能体版</div>
+                                        <div class="text-xs text-gray-400">5个AI智能体协作</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-300 mt-2">
+                                模拟5个专业AI智能体协作：导演、故事、分镜、视觉、AI专家。
+                            </p>
+                        </div>
+                        
+                        <div class="version-card" data-version="allinone">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 rounded-full bg-gradient-to-r from-green-500 to-green-600 flex items-center justify-center">
+                                        <i class="fas fa-wifi text-white"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium text-white">🔄 智能连接版</div>
+                                        <div class="text-xs text-gray-400">自动检测最佳连接</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-300 mt-2">
+                                自动测试和选择最佳连接方式，确保稳定访问。
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <button id="start-selected" class="w-full mt-4 py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl font-medium transition">
+                        <i class="fas fa-play mr-2"></i>启动选中的版本
+                    </button>
+                </div>
+
+                <!-- 快速功能 -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                        <i class="fas fa-bolt mr-2"></i> 快速功能
+                    </h3>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <button id="new-project" class="p-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg transition text-sm">
+                            <i class="fas fa-plus-circle mr-1"></i>新建项目
+                        </button>
+                        <button id="import-data" class="p-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-lg transition text-sm">
+                            <i class="fas fa-file-import mr-1"></i>导入数据
+                        </button>
+                        <button id="export-data" class="p-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-lg transition text-sm">
+                            <i class="fas fa-file-export mr-1"></i>导出数据
+                        </button>
+                        <button id="clear-data" class="p-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition text-sm">
+                            <i class="fas fa-trash mr-1"></i>清空数据
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 中间和右侧：主工作区 -->
+            <div class="lg:col-span-2">
+                <!-- 主工作区 -->
+                <div class="glass-card rounded-2xl p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-white flex items-center">
+                            <i class="fas fa-project-diagram mr-3"></i> 项目管理
+                            <span class="ml-2 text-sm bg-white/20 text-white px-2 py-1 rounded-full" id="current-version">完全独立版</span>
+                        </h2>
+                        <div class="flex space-x-2">
+                            <button id="refresh-projects" class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 项目列表 -->
+                    <div id="projects-container" class="space-y-4">
+                        <div class="text-center py-8 text-gray-400">
+                            <i class="fas fa-inbox text-4xl mb-3"></i>
+                            <p>还没有项目，点击"新建项目"开始创作</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 项目创建表单 -->
+                    <div id="project-form" class="mt-6 p-4 bg-white/5 rounded-xl hidden">
+                        <h4 class="font-semibold text-white mb-3">创建新项目</h4>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-sm text-gray-300 mb-1">项目名称</label>
+                                <input type="text" id="project-name" class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500" placeholder="例如：奇幻短视频创作">
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-300 mb-1">项目类型</label>
+                                <select id="project-type" class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm">
+                                    <option value="video_creation">视频创作</option>
+                                    <option value="story_creation">故事创作</option>
+                                    <option value="animation">动画制作</option>
+                                    <option value="brand_content">品牌内容</option>
+                                    <option value="educational">教育内容</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-300 mb-1">创作风格</label>
+                                <select id="creative-style" class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm">
+                                    <option value="fantasy">奇幻风格</option>
+                                    <option value="emotional">情感风格</option>
+                                    <option value="cinematic">电影风格</option>
+                                    <option value="minimalist">极简风格</option>
+                                    <option value="vibrant">活力风格</option>
+                                </select>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button id="create-project" class="flex-1 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg transition">
+                                    创建项目
+                                </button>
+                                <button id="cancel-project" class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition">
+                                    取消
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI智能体对话 -->
+                <div class="glass-card rounded-2xl p-6 mt-6">
+                    <h2 class="text-2xl font-bold text-white flex items-center mb-6">
+                        <i class="fas fa-comments mr-3"></i> AI智能体对话
+                    </h2>
+
+                    <div class="bg-white/5 rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="font-semibold text-white">与AI智能体交流</h4>
+                            <span class="text-xs text-gray-400">本地AI模拟</span>
+                        </div>
+                        
+                        <div id="chat-messages" class="space-y-3 max-h-60 overflow-y-auto p-2">
+                            <div class="chat-bubble ai">
+                                <div class="flex items-center mb-1">
+                                    <i class="fas fa-robot mr-2 text-green-400"></i>
+                                    <span class="font-medium text-white">AI导演</span>
+                                </div>
+                                <p class="text-sm text-white">🎬 你好！我是AI导演，欢迎使用智能工作室在线版。我可以帮你规划创作项目、协调智能体团队、提供专业指导。</p>
+                                <span class="text-xs text-gray-400 mt-1 block">AI导演 · 刚刚</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3 flex space-x-2">
+                            <input type="text" id="chat-input" placeholder="输入消息与AI交流..." class="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-green-500">
+                            <button id="send-message" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition">
+                                发送
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 智能体选择 -->
+                    <div class="mt-4 grid grid-cols-5 gap-2">
+                        <button class="agent-btn p-2 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white rounded-lg transition text-xs" data-agent="director">
+                            <i class="fas fa-crown"></i>
+                            <div class="mt-1">AI导演</div>
+                        </button>
+                        <button class="agent-btn p-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg transition text-xs" data-agent="narrative">
+                            <i class="fas fa-pen-nib"></i>
+                            <div class="mt-1">故事创作</div>
+                        </button>
+                        <button class="agent-btn p-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-lg transition text-xs" data-agent="storyboard">
+                            <i class="fas fa-film"></i>
+                            <div class="mt-1">分镜设计</div>
+                        </button>
+                        <button class="agent-btn p-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-lg transition text-xs" data-agent="visual_style">
+                            <i class="fas fa-palette"></i>
+                            <div class="mt-1">视觉风格</div>
+                        </button>
+                        <button class="agent-btn p-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-lg transition text-xs" data-agent="dreamai">
+                            <i class="fas fa-magic"></i>
+                            <div class="mt-1">AI专家</div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部信息 -->
+        <div class="mt-6 text-center text-gray-400 text-sm">
+            <p>🎬 智能工作室在线版 v1.0.0 | 数据保存: <span class="text-green-400">浏览器本地存储</span> | 访问: <span class="text-blue-400">无需安装</span></p>
+            <p class="mt-1">💡 提示: 所有数据保存在你的浏览器中，清空浏览器数据会丢失项目</p>
+        </div>
+    </div>
+
+    <!-- JavaScript - 网站版核心逻辑 -->
+    <script>
+        // ==================== 配置 ====================
+        const CONFIG = {
+            storageKey: 'smart-studio-website',
+            agents: {
+                director: {
+                    name: 'AI导演',
+                    icon: 'fa-crown',
+                    color: 'from-orange-500 to-yellow-500',
+                    responses: [
+                        "🎬 作为AI导演，我建议我们先明确项目目标。你想创作什么类型的视频？",
+                        "📋 好的，我已经为你规划了项目时间线。接下来需要故事创作智能体开始工作。",
+                        "👥 所有智能体已就位，我们可以开始协作创作了。",
+                        "✅ 项目进展顺利，质量把控很重要，我会确保每个环节都达到标准。"
+                    ]
+                },
+                narrative: {
+                    name: '故事创作智能体',
+                    icon: 'fa-pen-nib',
+                    color: 'from-blue-500 to-blue-600',
+                    responses: [
+                        "📖 我构思了一个关于月光森林的奇幻故事，主角是一位寻找失忆的精灵。",
+                        "💭 这个故事的情感核心是孤独与重逢，我设计了三个情感转折点。",
+                        "🎭 角色塑造完成：主角勇敢但脆弱，配角神秘而温暖。",
+                        "📝 对话场景已编写完成，注重情感表达和节奏感。"
+                    ]
+                },
+                storyboard: {
+                    name: '分镜设计智能体',
+                    icon: 'fa-film',
+                    color: 'from-purple-500 to-purple-600',
+                    responses: [
+                        "🎞️ 根据故事，我设计了8个关键分镜，每个分镜都有独特的视觉焦点。",
+                        "📐 镜头语言规划完成：开场用广角，情感高潮用特写。",
+                        "🔄 画面转换设计：使用淡入淡出和匹配剪辑增强流畅性。",
+                        "🎨 视觉节奏控制：快节奏动作场景与慢节奏情感场景交替。"
+                    ]
+                },
+                visual_style: {
+                    name: '视觉风格智能体',
+                    icon: 'fa-palette',
+                    color: 'from-green-500 to-green-600',
+                    responses: [
+                        "🎨 建议使用梦幻风格，柔和色彩搭配，营造神秘氛围。",
+                        "🌈 色彩方案：主色调为深蓝和紫色，点缀金色和银色。",
+                        "✨ 视觉元素：星光、雾气、发光植物增强奇幻感。",
+                        "📊 风格统一性：确保所有画面保持一致的视觉语言。"
+                    ]
+                },
+                dreamai: {
+                    name: 'AI生成专家',
+                    icon: 'fa-magic',
+                    color: 'from-pink-500 to-rose-500',
+                    responses: [
+                        "🤖 已优化提示词，准备生成高质量画面。",
+                        "🔧 技术参数调整：分辨率4K，风格强度0.8，创意度0.7。",
+                        "📈 质量评估：当前生成质量达到专业标准。",
+                        "💡 创意建议：尝试不同的视角和构图增强视觉冲击力。"
+                    ]
+                }
+            },
+            projectTypes: {
+                video_creation: { name: '视频创作', icon: 'fa-video', color: 'blue' },
+                story_creation: { name: '故事创作', icon: 'fa-book', color: 'purple' },
+                animation: { name: '动画制作', icon: 'fa-film', color: 'green' },
+                brand_content: { name: '品牌内容', icon: 'fa-bullhorn', color: 'orange' },
+                educational: { name: '教育内容', icon: 'fa-graduation-cap', color: 'red' }
+            },
+            creativeStyles: {
+                fantasy: '奇幻风格',
+                emotional: '情感风格',
+                cinematic: '电影风格',
+                minimalist: '极简风格',
+                vibrant: '活力风格'
+            }
+        };
+        
+        // ==================== 状态管理 ====================
+        let state = {
+            currentVersion: 'standalone',
+            projects: [],
+            selectedAgent: 'director',
+            chatHistory: []
+        };
+        
+        // ==================== 存储管理 ====================
+        class StorageManager {
+            constructor() {
+                this.loadState();
+            }
+            
+            loadState() {
+                try {
+                    const saved = localStorage.getItem(CONFIG.storageKey);
+                    if (saved) {
+                        const parsed = JSON.parse(saved);
+                        state.projects = parsed.projects || [];
+                        state.chatHistory = parsed.chatHistory || [];
+                        console.log('✅ 数据加载成功');
+                    }
+                } catch (error) {
+                    console.error('❌ 数据加载失败:', error);
+                }
+            }
+            
+            saveState() {
+                try {
+                    localStorage.setItem(CONFIG.storageKey, JSON.stringify({
+                        projects: state.projects,
+                        chatHistory: state.chatHistory,
+                        timestamp: new Date().toISOString()
+                    }));
+                    console.log('✅ 数据保存成功');
+                    return true;
+                } catch (error) {
+                    console.error('❌ 数据保存失败:', error);
+                    this.showNotification('❌ 数据保存失败，请检查浏览器存储权限', 'error');
+                    return false;
+                }
+            }
+            
+            exportData() {
+                const data = {
+                    projects: state.projects,
+                    chatHistory: state.chatHistory,
+                    exportDate: new Date().toISOString(),
+                    version: '1.0.0'
+                };
+                
+                const dataStr = JSON.stringify(data, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+                
+                const exportFileDefaultName = `smart-studio-backup-${new Date().toISOString().slice(0,10)}.json`;
+                
+                const linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', exportFileDefaultName);
+                linkElement.click();
+                
+                this.showNotification('📥 数据导出成功！');
+            }
+            
+            importData() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+                
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        try {
+                            const imported = JSON.parse(event.target.result);
+                            state.projects = imported.projects || [];
+                            state.chatHistory = imported.chatHistory || [];
+                            this.saveState();
+                            this.showNotification('✅ 数据导入成功！');
+                            window.location.reload();
+                        } catch (error) {
+                            this.showNotification('❌ 数据导入失败，文件格式错误', 'error');
+                        }
+                    };
+                    reader.readAsText(file);
+                };
+                
+                input.click();
+            }
+            
+            clearData() {
+                if (confirm('⚠️  确定要清空所有数据吗？此操作不可恢复！')) {
+                    localStorage.removeItem(CONFIG.storageKey);
+                    state.projects = [];
+                    state.chatHistory = [];
+                    this.showNotification('🗑️ 所有数据已清空');
+                    window.location.reload();
+                }
+            }
+            
+            showNotification(message, type = 'success') {
+                const notification = document.createElement('div');
+                notification.className = `notification ${type === 'error' ? 'bg-red-500' : 'bg-green-500'}`;
+                notification.textContent = message;
+                
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.remove();
+                }, 3000);
+            }
+        }
+        
+        // ==================== 项目管理 ====================
+        class ProjectManager {
+            constructor(storage) {
+                this.storage = storage;
+            }
+            
+            createProject(name, type, style) {
+                const project = {
+                    id: 'project_' + Date.now(),
+                    name: name,
+                    type: type,
+                    style: style,
+                    status: 'planning',
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    stages: [
+                        { name: '需求分析', status: 'pending', agent: 'director' },
+                        { name: '故事创作', status: 'pending', agent: 'narrative' },
+                        { name: '分镜设计', status: 'pending', agent: 'storyboard' },
+                        { name: '视觉风格', status: 'pending', agent: 'visual_style' },
+                        { name: 'AI生成', status: 'pending', agent: 'dreamai' },
+                        { name: '质量评估', status: 'pending', agent: 'director' }
+                    ]
+                };
+                
+                state.projects.unshift(project);
+                this.storage.saveState();
+                this.renderProjects();
+                
+                this.storage.showNotification(`🎉 项目"${name}"创建成功！`);
+                return project;
+            }
+            
+            deleteProject(projectId) {
+                state.projects = state.projects.filter(p => p.id !== projectId);
+                this.storage.saveState();
+                this.renderProjects();
+                this.storage.showNotification('🗑️ 项目已删除');
+            }
+            
+            updateProjectStatus(projectId, stageIndex, status) {
+                const project = state.projects.find(p => p.id === projectId);
+                if (project && project.stages[stageIndex]) {
+                    project.stages[stageIndex].status = status;
+                    project.updatedAt = new Date().toISOString();
+                    this.storage.saveState();
+                    this.renderProjects();
+                }
+            }
+            
+            renderProjects() {
+                const container = document.getElementById('projects-container');
+                
+                if (state.projects.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-8 text-gray-400">
+                            <i class="fas fa-inbox text-4xl mb-3"></i>
+                            <p>还没有项目，点击"新建项目"开始创作</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = '';
+                
+                state.projects.forEach(project => {
+                    const projectType = CONFIG.projectTypes[project.type] || { name: project.type, icon: 'fa-file', color: 'gray' };
+                    const completedStages = project.stages.filter(s => s.status === 'completed').length;
+                    const totalStages = project.stages.length;
+                    const progress = Math.round((completedStages / totalStages) * 100);
+                    
+                    const projectElement = document.createElement('div');
+                    projectElement.className = 'project-card';
+                    projectElement.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-start space-x-3">
+                                <div class="w-10 h-10 rounded-full bg-${projectType.color}-500/20 flex items-center justify-center">
+                                    <i class="fas ${projectType.icon} text-${projectType.color}-400"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-white">${project.name}</div>
+                                    <div class="text-sm text-gray-400 mt-1">
+                                        <span class="text-${projectType.color}-400">${projectType.name}</span> · 
+                                        <span class="ml-2">${CONFIG.creativeStyles[project.style] || project.style}</span>
+                                    </div>
+                                    <div class="flex items-center mt-2">
+                                        <div class="w-32 h-2 bg-white/10 rounded-full overflow-hidden">
+                                            <div class="h-full bg-${projectType.color}-500 rounded-full" style="width: ${progress}%"></div>
+                                        </div>
+                                        <span class="text-xs text-gray-400 ml-2">${progress}%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button class="project-action p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition text-xs" data-action="view" data-project="${project.id}">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="project-action p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition text-xs" data-action="delete" data-project="${project.id}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3 grid grid-cols-6 gap-1">
+                            ${project.stages.map((stage, index) => `
+                                <div class="text-center">
+                                    <div class="w-8 h-8 rounded-full mx-auto flex items-center justify-center ${
+                                        stage.status === 'completed' ? 'bg-green-500/20 text-green-400' :
+                                        stage.status === 'active' ? 'bg-yellow-500/20 text-yellow-400' :
+                                        'bg-white/10 text-gray-400'
+                                    }">
+                                        <i class="fas ${
+                                            stage.status === 'completed' ? 'fa-check' :
+                                            stage.status === 'active' ? 'fa-spinner fa-spin' : 'fa-clock'
+                                        } text-xs"></i>
+                                    </div>
+                                    <div class="text-xs text-gray-400 mt-1">${stage.name}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    
+                    container.appendChild(projectElement);
+                });
+                
+                // 添加事件监听器
+                document.querySelectorAll('.project-action').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const action = e.currentTarget.dataset.action;
+                        const projectId = e.currentTarget.dataset.project;
+                        
+                        if (action === 'view') {
+                            this.viewProject(projectId);
+                        } else if (action === 'delete') {
+                            this.deleteProject(projectId);
+                        }
+                    });
+                });
+            }
+            
+            viewProject(projectId) {
+                const project = state.projects.find(p => p.id === projectId);
+                if (project) {
+                    alert(`查看项目: ${project.name}\n类型: ${CONFIG.projectTypes[project.type].name}\n进度: ${project.stages.filter(s => s.status === 'completed').length}/${project.stages.length}阶段完成`);
+                }
+            }
+            
+            showProjectForm() {
+                document.getElementById('project-form').classList.remove('hidden');
+            }
+            
+            hideProjectForm() {
+                document.getElementById('project-form').classList.add('hidden');
+                document.getElementById('project-name').value = '';
+            }
+        }
+        
+        // ==================== AI对话管理 ====================
+        class AIChatManager {
+            constructor(storage) {
+                this.storage = storage;
+            }
+            
+            sendMessage(message, agentType = state.selectedAgent) {
+                // 添加用户消息
+                this.addChatMessage('user', message, 'user');
+                
+                // 模拟AI思考
+                setTimeout(() => {
+                    const agent = CONFIG.agents[agentType];
+                    const responses = agent.responses;
+                    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+                    
+                    this.addChatMessage(agent.name, randomResponse, 'ai');
+                    
+                    // 保存到历史
+                    state.chatHistory.push({
+                        sender: 'user',
+                        message: message,
+                        timestamp: new Date().toISOString()
+                    });
+                    
+                    state.chatHistory.push({
+                        sender: agent.name,
+                        message: randomResponse,
+                        timestamp: new Date().toISOString()
+                    });
+                    
+                    this.storage.saveState();
+                }, 1000);
+            }
+            
+            addChatMessage(sender, message, type = 'ai') {
+                const container = document.getElementById('chat-messages');
+                
+                const messageElement = document.createElement('div');
+                messageElement.className = `chat-bubble ${type}`;
+                
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+                
+                let icon = 'fa-robot';
+                let color = 'text-green-400';
+                
+                if (type === 'user') {
+                    icon = 'fa-user';
+                    color = 'text-purple-400';
+                } else if (type === 'ai') {
+                    const agent = Object.values(CONFIG.agents).find(a => a.name === sender);
+                    if (agent) {
+                        icon = agent.icon;
+                    }
+                }
+                
+                messageElement.innerHTML = `
+                    <div class="flex items-center mb-1">
+                        <i class="fas ${icon} mr-2 ${color}"></i>
+                        <span class="font-medium text-white">${sender}</span>
+                    </div>
+                    <p class="text-sm text-white">${message}</p>
+                    <span class="text-xs text-gray-400 mt-1 block">${sender} · ${timeStr}</span>
+                `;
+                
+                container.appendChild(messageElement);
+                container.scrollTop = container.scrollHeight;
+            }
+            
+            selectAgent(agentType) {
+                state.selectedAgent = agentType;
+                
+                // 更新按钮状态
+                document.querySelectorAll('.agent-btn').forEach(btn => {
+                    btn.classList.remove('bg-gradient-to-r', 'from-blue-600', 'to-blue-700');
+                    btn.classList.add('bg-gradient-to-r');
+                });
+                
+                const selectedBtn = document.querySelector(`.agent-btn[data-agent="${agentType}"]`);
+                if (selectedBtn) {
+                    selectedBtn.classList.remove('bg-gradient-to-r');
+                    selectedBtn.classList.add('bg-gradient-to-r', 'from-blue-600', 'to-blue-700');
+                }
+                
+                const agent = CONFIG.agents[agentType];
+                this.storage.showNotification(`✅ 已选择 ${agent.name}`);
+            }
+        }
+        
+        // ==================== 版本管理 ====================
+        class VersionManager {
+            selectVersion(version) {
+                state.currentVersion = version;
+                
+                // 更新UI
+                document.querySelectorAll('.version-card').forEach(card => {
+                    card.classList.remove('selected');
+                    const checkIcon = card.querySelector('.fa-check-circle');
+                    if (checkIcon) checkIcon.classList.add('hidden');
+                });
+                
+                const selectedCard = document.querySelector(`.version-card[data-version="${version}"]`);
+                if (selectedCard) {
+                    selectedCard.classList.add('selected');
+                    const checkIcon = selectedCard.querySelector('.fa-check-circle');
+                    if (checkIcon) checkIcon.classList.remove('hidden');
+                }
+                
+                // 更新当前版本显示
+                let versionName = '完全独立版';
+                if (version === 'agents') versionName = '本地智能体版';
+                if (version === 'allinone') versionName = '智能连接版';
+                
+                document.getElementById('current-version').textContent = versionName;
+                
+                const storage = new StorageManager();
+                storage.showNotification(`✅ 已切换到 ${versionName}`);
+            }
+            
+            startSelectedVersion() {
+                const version = state.currentVersion;
+                let message = '';
+                
+                if (version === 'standalone') {
+                    message = '🎬 启动完全独立版！所有功能本地运行，无需网络。';
+                } else if (version === 'agents') {
+                    message = '🤖 启动本地智能体版！5个AI智能体已就位，开始协作创作。';
+                } else if (version === 'allinone') {
+                    message = '🔄 启动智能连接版！正在检测最佳连接方式...';
+                }
+                
+                const storage = new StorageManager();
+                storage.showNotification(message);
+                
+                // 如果是智能连接版，模拟连接检测
+                if (version === 'allinone') {
+                    setTimeout(() => {
+                        storage.showNotification('✅ 连接检测完成：使用本地独立模式');
+                    }, 2000);
+                }
+            }
+        }
+        
+        // ==================== 应用初始化 ====================
+        class SmartStudioApp {
+            constructor() {
+                this.storage = new StorageManager();
+                this.projectManager = new ProjectManager(this.storage);
+                this.chatManager = new AIChatManager(this.storage);
+                this.versionManager = new VersionManager();
+            }
+            
+            init() {
+                // 初始化UI
+                this.projectManager.renderProjects();
+                this.setupEventListeners();
+                
+                // 显示欢迎消息
+                setTimeout(() => {
+                    this.storage.showNotification('🎬 欢迎使用智能工作室在线版！');
+                }, 1000);
+            }
+            
+            setupEventListeners() {
+                // 版本选择
+                document.querySelectorAll('.version-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        const version = card.dataset.version;
+                        this.versionManager.selectVersion(version);
+                    });
+                });
+                
+                // 启动选中版本
+                document.getElementById('start-selected').addEventListener('click', () => {
+                    this.versionManager.startSelectedVersion();
+                });
+                
+                // 新建项目
+                document.getElementById('new-project').addEventListener('click', () => {
+                    this.projectManager.showProjectForm();
+                });
+                
+                // 创建项目
+                document.getElementById('create-project').addEventListener('click', () => {
+                    const name = document.getElementById('project-name').value.trim();
+                    const type = document.getElementById('project-type').value;
+                    const style = document.getElementById('creative-style').value;
+                    
+                    if (!name) {
+                        this.storage.showNotification('❌ 请输入项目名称', 'error');
+                        return;
+                    }
+                    
+                    this.projectManager.createProject(name, type, style);
+                    this.projectManager.hideProjectForm();
+                });
+                
+                // 取消创建
+                document.getElementById('cancel-project').addEventListener('click', () => {
+                    this.projectManager.hideProjectForm();
+                });
+                
+                // 保存数据
+                document.getElementById('save-data').addEventListener('click', () => {
+                    if (this.storage.saveState()) {
+                        this.storage.showNotification('💾 数据已保存到浏览器本地存储');
+                    }
+                });
+                
+                // 导出数据
+                document.getElementById('export-data').addEventListener('click', () => {
+                    this.storage.exportData();
+                });
+                
+                // 导入数据
+                document.getElementById('import-data').addEventListener('click', () => {
+                    this.storage.importData();
+                });
+                
+                // 清空数据
+                document.getElementById('clear-data').addEventListener('click', () => {
+                    this.storage.clearData();
+                });
+                
+                // 刷新项目
+                document.getElementById('refresh-projects').addEventListener('click', () => {
+                    this.projectManager.renderProjects();
+                    this.storage.showNotification('🔄 项目列表已刷新');
+                });
+                
+                // 发送消息
+                document.getElementById('send-message').addEventListener('click', () => {
+                    this.sendChatMessage();
+                });
+                
+                document.getElementById('chat-input').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.sendChatMessage();
+                    }
+                });
+                
+                // 选择智能体
+                document.querySelectorAll('.agent-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const agentType = btn.dataset.agent;
+                        this.chatManager.selectAgent(agentType);
+                    });
+                });
+            }
+            
+            sendChatMessage() {
+                const input = document.getElementById('chat-input');
+                const message = input.value.trim();
+                
+                if (!message) {
+                    this.storage.showNotification('❌ 请输入消息内容', 'error');
+                    return;
+                }
+                
+                this.chatManager.sendMessage(message, state.selectedAgent);
+                input.value = '';
+            }
+        }
+        
+        // ==================== 启动应用 ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = new SmartStudioApp();
+            app.init();
+            
+            // 全局导出
+            window.smartStudioApp = app;
+            window.appState = state;
+            
+            console.log('🎬 智能工作室在线版已启动！');
+            console.log('📊 当前项目数:', state.projects.length);
+            console.log('💾 存储状态:', localStorage.getItem(CONFIG.storageKey) ? '已保存' : '未保存');
+        });
+        
+        // ==================== 离线支持 ====================
+        // 检测网络状态
+        window.addEventListener('online', () => {
+            const storage = new StorageManager();
+            storage.showNotification('🌐 网络已连接');
+        });
+        
+        window.addEventListener('offline', () => {
+            const storage = new StorageManager();
+            storage.showNotification('📴 网络已断开，切换到离线模式');
+        });
+        
+        // 防止离开页面时数据丢失
+        window.addEventListener('beforeunload', (e) => {
+            const storage = new StorageManager();
+            storage.saveState();
+        });
+        
+        // 定期自动保存
+        setInterval(() => {
+            const storage = new StorageManager();
+            storage.saveState();
+        }, 30000); // 每30秒自动保存一次
+    </script>
+</body>
+</html>

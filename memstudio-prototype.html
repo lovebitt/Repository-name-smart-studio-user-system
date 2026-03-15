@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎬 MemStudio 2.0 - 记忆增强智能工作室</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --secondary: #8b5cf6;
+            --accent: #10b981;
+            --memory: #f59e0b;
+            --dark: #1f2937;
+            --light: #f9fafb;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%);
+            min-height: 100vh;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        
+        .memory-badge {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .memory-highlight {
+            background: rgba(245, 158, 11, 0.15);
+            border-left: 4px solid #f59e0b;
+            padding: 12px;
+            border-radius: 0 8px 8px 0;
+            margin: 8px 0;
+        }
+        
+        .project-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 12px 0;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+        
+        .project-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .project-card.with-memory {
+            border-color: rgba(245, 158, 11, 0.5);
+            background: rgba(245, 158, 11, 0.05);
+        }
+        
+        .agent-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 8px 0;
+            transition: all 0.3s ease;
+        }
+        
+        .agent-card.learning {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        
+        .memory-timeline {
+            position: relative;
+            padding-left: 20px;
+        }
+        
+        .memory-timeline::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: rgba(245, 158, 11, 0.5);
+        }
+        
+        .memory-event {
+            position: relative;
+            padding: 8px 12px;
+            margin: 8px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border-left: 3px solid #f59e0b;
+        }
+        
+        .memory-event::before {
+            content: '';
+            position: absolute;
+            left: -20px;
+            top: 14px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #f59e0b;
+        }
+        
+        .chat-bubble {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            margin: 8px 0;
+            position: relative;
+        }
+        
+        .chat-bubble.ai {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .chat-bubble.user {
+            background: rgba(139, 92, 246, 0.2);
+            border: 1px solid rgba(139, 92, 246, 0.4);
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .chat-bubble.memory {
+            background: rgba(245, 158, 11, 0.2);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            align-self: center;
+            border-radius: 12px;
+            font-style: italic;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            background: rgba(16, 185, 129, 0.9);
+            color: white;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .memory-search-result {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+            transition: all 0.3s ease;
+        }
+        
+        .memory-search-result:hover {
+            background: rgba(245, 158, 11, 0.2);
+            transform: translateX(5px);
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+    <div class="min-h-screen p-4 md:p-6">
+        <!-- 顶部导航 -->
+        <nav class="glass-card rounded-2xl p-4 mb-6 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 rounded-full bg-gradient-to-r from-orange-500 to-yellow-500 flex items-center justify-center">
+                    <i class="fas fa-brain text-white text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-white">🎬 MemStudio 2.0</h1>
+                    <p class="text-sm text-gray-200">记忆增强型智能工作室 · 你的创作永不遗忘</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="memory-badge">
+                    <i class="fas fa-memory"></i>
+                    <span>记忆系统激活</span>
+                </span>
+                <button id="save-session" class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition flex items-center space-x-2">
+                    <i class="fas fa-save"></i>
+                    <span>保存记忆</span>
+                </button>
+            </div>
+        </nav>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- 左侧：记忆面板 -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- 记忆状态 -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                        <i class="fas fa-database mr-2"></i> 记忆系统
+                    </h3>
+                    
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-300">记忆存储:</span>
+                            <span class="text-white font-mono" id="memory-count">0 条</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-300">项目记忆:</span>
+                            <span class="text-white font-mono" id="project-memory">0 个</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-300">智能体学习:</span>
+                            <span class="text-green-400 font-mono" id="agent-learning">进行中</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-300">上次恢复:</span>
+                            <span class="text-white font-mono" id="last-restore">从未</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-orange-500/10 rounded-lg">
+                        <div class="flex items-center">
+                            <i class="fas fa-lightbulb text-orange-400 mr-2"></i>
+                            <span class="text-sm text-gray-300">💡 记忆系统正在学习你的创作习惯</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 记忆搜索 -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                        <i class="fas fa-search mr-2"></i> 记忆搜索
+                    </h3>
+                    
+                    <div class="mb-3">
+                        <input type="text" id="memory-search" placeholder="搜索记忆..." class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-orange-500">
+                    </div>
+                    
+                    <div id="search-results" class="space-y-2 max-h-60 overflow-y-auto">
+                        <div class="text-center py-4 text-gray-400 text-sm">
+                            <i class="fas fa-search mb-2"></i>
+                            <p>输入关键词搜索记忆</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 记忆时间线 -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                        <i class="fas fa-history mr-2"></i> 记忆时间线
+                    </h3>
+                    
+                    <div class="memory-timeline" id="memory-timeline">
+                        <div class="memory-event">
+                            <div class="text-xs text-orange-400">刚刚</div>
+                            <div class="text-sm text-white">系统启动，记忆加载完成</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 中间：主工作区 -->
+            <div class="lg:col-span-2">
+                <!-- 项目工作室 -->
+                <div class="glass-card rounded-2xl p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-white flex items-center">
+                            <i class="fas fa-project-diagram mr-3"></i> 项目工作室
+                            <span class="ml-2 text-sm bg-orange-500/20 text-orange-300 px-2 py-1 rounded-full">记忆增强</span>
+                        </h2>
+                        <div class="flex space-x-2">
+                            <button id="new-memory-project" class="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-lg transition">
+                                <i class="fas fa-plus-circle mr-2"></i>新建记忆项目
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 项目列表 -->
+                    <div id="projects-container" class="space-y-4">
+                        <div class="text-center py-8 text-gray-400">
+                            <i class="fas fa-inbox text-4xl mb-3"></i>
+                            <p>还没有项目，创建第一个记忆增强项目</p>
+                            <p class="text-sm mt-2">💡 记忆系统会自动记录你的创作过程</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 记忆建议 -->
+                    <div id="memory-suggestions" class="mt-6 p-4 bg-orange-500/10 rounded-xl hidden">
+                        <h4 class="font-semibold text-white mb-3 flex items-center">
+                            <i class="fas fa-lightbulb text-orange-400 mr-2"></i> 记忆建议
+                        </h4>
+                        <p class="text-sm text-gray-300" id="suggestion-text"></p>
+                        <button id="apply-suggestion" class="mt-3 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition text-sm">
+                            应用建议
+                        </button>
+                    </div>
+                </div>
+
+                <!-- AI智能体协作 -->
+                <div class="glass-card rounded-2xl p-6 mt-6">
+                    <h2 class="text-2xl font-bold text-white flex items-center mb-6">
+                        <i class="fas fa-robot mr-3"></i> 记忆增强智能体
+                    </h2>
+
+                    <div class="grid grid-cols-5 gap-3 mb-4">
+                        <div class="agent-card learning" data-agent="director">
+                            <div class="text-center">
+                                <div class="w-12 h-12 rounded-full bg-gradient-to-r from-orange-500 to-yellow-500 flex items-center justify-center mx-auto mb-2">
+                                    <i class="fas fa-crown text-white"></i>
+                                </div>
+                                <div class="font-medium text-white">AI导演</div>
+                                <div class="text-xs text-gray-400">记忆学习: 85%</div>
+                            </div>
+                        </div>
+                        <div class="agent-card" data-agent="narrative">
+                            <div class="text-center">
+                                <div class="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center mx-auto mb-2">
+                                    <i class="fas fa-pen-nib text-white"></i>
+                                </div>
+                                <div class="font-medium text-white">故事创作</div>
+                                <div class="text-xs text-gray-400">记忆学习: 72%</div>
+                            </div>
+                        </div>
+                        <div class="agent-card" data-agent="storyboard">
+                            <div class="text-center">
+                                <div class="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center mx-auto mb-2">
+                                    <i class="fas fa-film text-white"></i>
+                                </div>
+                                <div class="font-medium text-white">分镜设计</div>
+                                <div class="text-xs text-gray-400">记忆学习: 68%</div>
+                            </div>
+                        </div>
+                        <div class="agent-card" data-agent="visual_style">
+                            <div class="text-center">
+                                <div class="w-12 h-12 rounded-full bg-gradient-to-r from-green-500 to-green-600 flex items-center justify-center mx-auto mb-2">
+                                    <i class="fas fa-palette text-white"></i>
+                                </div>
+                                <div class="font-medium text-white">视觉风格</div>
+                                <div class="text-xs text-gray-400">记忆学习: 79%</div>
+                            </div>
+                        </div>
+                        <div class="agent-card" data-agent="dreamai">
+                            <div class="text-center">
+                                <div class="w-12 h-12 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 flex items-center justify-center mx-auto mb-2">
+                                    <i class="fas fa-magic text-white"></i>
+                                </div>
+                                <div class="font-medium text-white">AI专家</div>
+                                <div class="text-xs text-gray-400">记忆学习: 91%</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 智能体对话 -->
+                    <div class="bg-white/5 rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="font-semibold text-white">记忆增强对话</h4>
+                            <span class="text-xs text-gray-400">基于历史记忆的智能响应</span>
+                        </div>
+                        
+                        <div id="chat-messages" class="space-y-3 max-h-60 overflow-y-auto p-2">
+                            <div class="chat-bubble memory">
+                                <div class="flex items-center mb-1">
+                                    <i class="fas fa-brain mr-2 text-orange-400"></i>
+                                    <span class="font-medium text-white">记忆系统</span>
+                                </div>
+                                <p class="text-sm text-white">🎬 欢迎使用MemStudio 2.0！我记住了你之前的创作习惯，会提供个性化建议。</p>
+                                <span class="text-xs text-gray-400 mt-1 block">记忆系统 · 刚刚</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3 flex space-x-2">
+                            <input type="text" id="chat-input" placeholder="输入消息..." class="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-green-500">
+                            <button id="send-message" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition">
+                                发送
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：记忆分析和控制 -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- 记忆分析 -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                        <i class="fas fa-chart-line mr-2"></i> 记忆分析
+                    </h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm text-gray-300">创作效率</span>
+                                <span class="text-sm text-green-400" id="efficiency-score">+23%</span>
+                            </div>
+                            <div class="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                                <div class="h-full bg-green-500 rounded-full" style="width: 65%"></div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm text-gray-300">记忆利用率</span>
+                                <span class="text-sm text-orange-400" id="memory-utilization">78%</span>
+                            </div>
+                            <div class="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                                <div class="h-full bg-orange-500 rounded-full" style="width: 78%"></div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm text-gray-300">智能体学习进度</span>
+                                <span class="text-sm text-blue-400" id="learning-progress">79%</span>
+                            </div>
+                            <div class="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                                <div class="h-full bg-blue-500 rounded-full" style="width: 79%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-blue-500/10 rounded-lg">
+                        <h4 class="font-semibold text-white text-sm mb-2">📊 分析洞察</h4>
+                        <p class="text-xs text-gray-300" id="insight-text">记忆系统检测到你在奇幻风格项目上效率最高，建议继续这个方向。</p>
+                    </div>
+                </div>
+
+                <!-- 记忆控制 -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                        <i class="fas fa-cog mr-2"></i> 记忆控制
+                    </h3>
+                    
+                    <div class="space-y-3">
+                        <button id="backup-memory" class="w-full py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg transition text-sm">
+                            <i class="fas fa-download mr-2"></i>备份记忆数据
+                        </button>
+                        
+                        <button id="restore-session" class="w-full py-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-lg transition text-sm">
+                            <i class="fas fa-undo mr-2"></i>恢复上次会话
+                        </button>
+                        
+                        <button id="clear-memory" class="w-full py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition text-sm">
+                            <i class="fas fa-trash mr-2"></i>清空特定记忆
+                        </button>
+                        
+                        <button id="train-agents" class="w-full py-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-lg transition text-sm">
+                            <i class="fas fa-graduation-cap mr-2"></i>训练智能体
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 快速记忆 -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                        <i class="fas fa-bolt mr-2"></i> 快速记忆
+                    </h3>
+                    
+                    <div class="space-y-2">
+                        <button class="w-full py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition text-sm flex items-center justify-between" data-memory="project-template">
+                            <span>💡 保存为项目模板</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                        
+                        <button class="w-full py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition text-sm flex items-center justify-between" data-memory="creative-insight">
+                            <span>🎨 记录创作灵感</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                        
+                        <button class="w-full py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition text-sm flex items-center justify-between" data-memory="workflow-optimization">
+                            <span>⚡ 优化工作流</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                        
+                        <button class="w-full py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition text-sm flex items-center justify-between" data-memory="agent-preference">
+                            <span>🤖 设置智能体偏好</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部状态栏 -->
+        <div class="mt-6 text-center text-gray-400 text-sm">
+            <p>🎬 MemStudio 2.0 原型版 | 记忆系统: <span class="text-green-400">运行中</span> | 智能体学习: <span class="text-blue-400">进行中</span> | 数据安全: <span class="text-orange-400">本地存储</span></p>
+            <p class="mt-1">💡 提示: 所有记忆数据保存在浏览器本地，清空浏览器数据会丢失记忆</p>
+        </div>
+    </div>
+
+    <!-- JavaScript - MemStudio 2.0 核心逻辑 -->
+    <script>
+        // ==================== 配置 ====================
+        const MEMSTUDIO_CONFIG = {
+            storageKey: 'memstudio-2.0',
+            agents: {
+                director: { name: 'AI导演', icon: 'fa-crown', color: 'from-orange-500 to-yellow-500', learning: 85 },
+                narrative: { name: '故事创作', icon: 'fa-pen-nib', color: 'from-blue-500 to-blue-600', learning: 72 },
+                storyboard: { name: '分镜设计', icon: 'fa-film', color: 'from-purple-500 to-purple-600', learning: 68 },
+                visual_style: { name: '视觉风格', icon: 'fa-palette', color: 'from-green-500 to-green-600', learning: 79 },
+                dreamai: { name: 'AI专家', icon: 'fa-magic', color: 'from-pink-500 to-rose-500', learning: 91 }
+            },
+            memoryCategories: {
+                project: '项目记忆',
+                insight: '创作洞察',
+                workflow: '工作流',
+                preference: '用户偏好',
+                agent: '智能体学习'
+            }
+        };
+        
+        // ==================== 状态管理 ====================
+        let memstudioState = {
+            memories: [],
+            projects: [],
+            chatHistory: [],
+            agentLearning: {},
+            lastRestore: null,
+            memoryCount: 0,
+            efficiencyScore: 23,
+            memoryUtilization: 78,
+            learningProgress: 79
+        };
+        
+        // ==================== 记忆管理系统 ====================
+        class MemorySystem {
+            constructor() {
+                this.loadMemories();
+                this.updateUI();
+                this.setupAutoSave();
+            }
+            
+            loadMemories() {
+                try {
+                    const saved = localStorage.getItem(MEMSTUDIO_CONFIG.storageKey);
+                    if (saved) {
+                        const parsed = JSON.parse(saved);
+                        memstudioState = { ...memstudioState, ...parsed };
+                        console.log('✅ 记忆加载成功:', memstudioState.memories.length, '条记忆');
+                        
+                        // 更新最后恢复时间
+                        memstudioState.lastRestore = new Date().toISOString();
+                        this.saveMemories();
+                    }
+                } catch (error) {
+                    console.error('❌ 记忆加载失败:', error);
+                }
+            }
+            
+            saveMemories() {
+                try {
+                    localStorage.setItem(MEMSTUDIO_CONFIG.storageKey, JSON.stringify(memstudioState));
+                    console.log('✅ 记忆保存成功');
+                    return true;
+                } catch (error) {
+                    console.error('❌ 记忆保存失败:', error);
+                    this.showNotification('❌ 记忆保存失败，请检查存储空间', 'error');
+                    return false;
+                }
+            }
+            
+            addMemory(content, category = 'insight', tags = []) {
+                const memory = {
+                    id: 'memory_' + Date.now(),
+                    content: content,
+                    category: category,
+                    tags: tags,
+                    timestamp: new Date().toISOString(),
+                    accessed: 0
+                };
+                
+                memstudioState.memories.unshift(memory);
+                memstudioState.memoryCount = memstudioState.memories.length;
+                
+                this.saveMemories();
+                this.updateUI();
+                this.addTimelineEvent(`记忆记录: ${content.substring(0, 50)}...`);
+                
+                return memory;
+            }
+            
+            searchMemories(query) {
+                if (!query.trim()) return [];
+                
+                const results = memstudioState.memories.filter(memory => {
+                    const searchText = `${memory.content} ${memory.category} ${memory.tags.join(' ')}`.toLowerCase();
+                    return searchText.includes(query.toLowerCase());
+                });
+                
+                return results.slice(0, 10); // 返回前10个结果
+            }
+            
+            updateAgentLearning(agentId, progress) {
+                memstudioState.agentLearning[agentId] = progress;
+                
+                // 更新总体学习进度
+                const agents = Object.keys(MEMSTUDIO_CONFIG.agents);
+                const totalProgress = agents.reduce((sum, agent) => {
+                    return sum + (memstudioState.agentLearning[agent] || 0);
+                }, 0);
+                
+                memstudioState.learningProgress = Math.round(totalProgress / agents.length);
+                this.saveMemories();
+                this.updateUI();
+            }
+            
+            addTimelineEvent(eventText) {
+                const timeline = document.getElementById('memory-timeline');
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+                
+                const eventElement = document.createElement('div');
+                eventElement.className = 'memory-event';
+                eventElement.innerHTML = `
+                    <div class="text-xs text-orange-400">${timeStr}</div>
+                    <div class="text-sm text-white">${eventText}</div>
+                `;
+                
+                timeline.insertBefore(eventElement, timeline.firstChild);
+                
+                // 限制时间线数量
+                const events = timeline.querySelectorAll('.memory-event');
+                if (events.length > 10) {
+                    events[events.length - 1].remove();
+                }
+            }
+            
+            showNotification(message, type = 'success') {
+                const notification = document.createElement('div');
+                notification.className = `notification ${type === 'error' ? 'bg-red-500' : 'bg-green-500'}`;
+                notification.textContent = message;
+                
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.remove();
+                }, 3000);
+            }
+            
+            updateUI() {
+                // 更新记忆计数
+                document.getElementById('memory-count').textContent = `${memstudioState.memoryCount} 条`;
+                document.getElementById('project-memory').textContent = `${memstudioState.projects.length} 个`;
+                document.getElementById('last-restore').textContent = memstudioState.lastRestore ? 
+                    new Date(memstudioState.lastRestore).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '从未';
+                
+                // 更新分析数据
+                document.getElementById('efficiency-score').textContent = `+${memstudioState.efficiencyScore}%`;
+                document.getElementById('memory-utilization').textContent = `${memstudioState.memoryUtilization}%`;
+                document.getElementById('learning-progress').textContent = `${memstudioState.learningProgress}%`;
+                
+                // 更新智能体学习状态
+                Object.entries(MEMSTUDIO_CONFIG.agents).forEach(([agentId, agent]) => {
+                    const agentCard = document.querySelector(`.agent-card[data-agent="${agentId}"]`);
+                    if (agentCard) {
+                        const progress = memstudioState.agentLearning[agentId] || agent.learning;
+                        const progressElement = agentCard.querySelector('.text-xs.text-gray-400');
+                        if (progressElement) {
+                            progressElement.textContent = `记忆学习: ${progress}%`;
+                        }
+                    }
+                });
+            }
+            
+            setupAutoSave() {
+                // 每30秒自动保存
+                setInterval(() => {
+                    if (this.saveMemories()) {
+                        console.log('💾 自动保存完成');
+                    }
+                }, 30000);
+                
+                // 页面离开前保存
+                window.addEventListener('beforeunload', () => {
+                    this.saveMemories();
+                });
+            }
+        }
+        
+        // ==================== 项目管理 ====================
+        class ProjectManager {
+            constructor(memorySystem) {
+                this.memorySystem = memorySystem;
+                this.renderProjects();
+            }
+            
+            createMemoryProject(name, type = 'video_creation', style = 'fantasy') {
+                const project = {
+                    id: 'project_' + Date.now(),
+                    name: name,
+                    type: type,
+                    style: style,
+                    status: 'planning',
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    memoryTags: [`项目:${name}`, `类型:${type}`, `风格:${style}`],
+                    stages: [
+                        { name: '需求分析', status: 'pending', agent: 'director' },
+                        { name: '故事创作', status: 'pending', agent: 'narrative' },
+                        { name: '分镜设计', status: 'pending', agent: 'storyboard' },
+                        { name: '视觉风格', status: 'pending', agent: 'visual_style' },
+                        { name: 'AI生成', status: 'pending', agent: 'dreamai' },
+                        { name: '质量评估', status: 'pending', agent: 'director' }
+                    ]
+                };
+                
+                memstudioState.projects.unshift(project);
+                this.memorySystem.saveMemories();
+                this.renderProjects();
+                
+                // 添加记忆
+                this.memorySystem.addMemory(
+                    `创建新项目: ${name} (${type} - ${style})`,
+                    'project',
+                    project.memoryTags
+                );
+                
+                this.memorySystem.showNotification(`🎉 记忆项目"${name}"创建成功！`);
+                this.showMemorySuggestion(project);
+                
+                return project;
+            }
+            
+            showMemorySuggestion(project) {
+                const suggestions = [
+                    `基于你的历史项目，建议在${project.name}中尝试更复杂的镜头运动。`,
+                    `记忆系统发现你在${project.style}风格上表现优秀，继续保持！`,
+                    `智能体已学习你的创作模式，会提供更精准的建议。`,
+                    `上次类似项目用时较短，这次可以挑战更复杂的创意。`
+                ];
+                
+                const suggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
+                
+                const container = document.getElementById('memory-suggestions');
+                const textElement = document.getElementById('suggestion-text');
+                
+                textElement.textContent = suggestion;
+                container.classList.remove('hidden');
+            }
+            
+            renderProjects() {
+                const container = document.getElementById('projects-container');
+                
+                if (memstudioState.projects.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-8 text-gray-400">
+                            <i class="fas fa-inbox text-4xl mb-3"></i>
+                            <p>还没有项目，创建第一个记忆增强项目</p>
+                            <p class="text-sm mt-2">💡 记忆系统会自动记录你的创作过程</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = '';
+                
+                memstudioState.projects.forEach(project => {
+                    const completedStages = project.stages.filter(s => s.status === 'completed').length;
+                    const totalStages = project.stages.length;
+                    const progress = Math.round((completedStages / totalStages) * 100);
+                    
+                    const projectElement = document.createElement('div');
+                    projectElement.className = 'project-card with-memory';
+                    projectElement.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-start space-x-3">
+                                <div class="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
+                                    <i class="fas fa-brain text-orange-400"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-white">${
